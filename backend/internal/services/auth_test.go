@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/jacob/plex-requests/internal/testutil"
+	"github.com/jacob-fain/MRS/internal/testutil"
 )
 
 func TestNewAuthService(t *testing.T) {

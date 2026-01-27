@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jacob/plex-requests/internal/services"
-	"github.com/jacob/plex-requests/internal/testutil"
+	"github.com/jacob-fain/MRS/internal/services"
+	"github.com/jacob-fain/MRS/internal/testutil"
 )
 
 // Mock Plex service for testing

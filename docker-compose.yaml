@@ -3,17 +3,17 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: plex-requests-db
+    container_name: mrs-db
     environment:
-      POSTGRES_USER: plexrequests
-      POSTGRES_PASSWORD: plexrequests123
-      POSTGRES_DB: plexrequests
+      POSTGRES_USER: mrssystem
+      POSTGRES_PASSWORD: mrs123
+      POSTGRES_DB: mrssystem
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U plexrequests"]
+      test: ["CMD-SHELL", "pg_isready -U mrssystem"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,11 +22,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: plex-requests-backend
+    container_name: mrs-backend
     ports:
       - "8080:8080"
     environment:
-      DATABASE_URL: postgres://plexrequests:plexrequests123@postgres:5432/plexrequests?sslmode=disable
+      DATABASE_URL: postgres://mrssystem:mrs123@postgres:5432/mrssystem?sslmode=disable
       JWT_SECRET: ${JWT_SECRET}
       PORT: ${PORT}
       GIN_MODE: ${GIN_MODE}
@@ -45,7 +45,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: plex-requests-frontend
+    container_name: mrs-frontend
     ports:
       - "5173:5173"
     environment:

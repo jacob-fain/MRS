@@ -8,7 +8,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/jacob/plex-requests/internal/models"
+	"github.com/jacob-fain/MRS/internal/models"
 )
 
 // SetupTestDB creates an in-memory SQLite database for testing

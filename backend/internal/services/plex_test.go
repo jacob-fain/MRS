@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jacob/plex-requests/internal/testutil"
+	"github.com/jacob-fain/MRS/internal/testutil"
 )
 
 func TestNewPlexService(t *testing.T) {

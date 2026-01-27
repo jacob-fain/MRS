@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-A full-stack web application for managing movie and TV show requests for Plex Media Server, started on 2025-07-18. The project uses Go with Gin for the backend API and React with Vite for the frontend SPA.
+MRS (Media Request System) - A full-stack web application for managing movie and TV show requests for Plex Media Server. The project uses Go with Gin for the backend API and React with Vite for the frontend SPA.
 
 ## Architecture
 
@@ -77,10 +77,10 @@ npm run lint
 ### Database Operations
 ```bash
 # Access PostgreSQL container
-docker exec -it plex-requests-db psql -U plexrequests -d plexrequests
+docker exec -it mrs-db psql -U mrssystem -d mrssystem
 
 # View logs
-docker logs plex-requests-db
+docker logs mrs-db
 ```
 
 ## Configuration

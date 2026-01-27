@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jacob/plex-requests/internal/database"
-	"github.com/jacob/plex-requests/internal/handlers"
-	"github.com/jacob/plex-requests/internal/middleware"
-	"github.com/jacob/plex-requests/internal/services"
+	"github.com/jacob-fain/MRS/internal/database"
+	"github.com/jacob-fain/MRS/internal/handlers"
+	"github.com/jacob-fain/MRS/internal/middleware"
+	"github.com/jacob-fain/MRS/internal/services"
 )
 
 func main() {

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jacob/plex-requests/internal/models"
-	"github.com/jacob/plex-requests/internal/services"
+	"github.com/jacob-fain/MRS/internal/models"
+	"github.com/jacob-fain/MRS/internal/services"
 	"gorm.io/gorm"
 )
 

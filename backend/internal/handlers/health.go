@@ -9,7 +9,7 @@ import (
 func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "healthy",
-		"service": "plex-requests-api",
+		"service": "mrs-api",
 		"version": "1.0.0",
 	})
 }

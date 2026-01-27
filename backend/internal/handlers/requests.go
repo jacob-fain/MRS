@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jacob/plex-requests/internal/models"
+	"github.com/jacob-fain/MRS/internal/models"
 	"gorm.io/gorm"
 )
 

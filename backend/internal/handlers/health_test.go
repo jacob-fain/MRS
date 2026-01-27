@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jacob/plex-requests/internal/testutil"
+	"github.com/jacob-fain/MRS/internal/testutil"
 )
 
 func TestHealthCheck(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jacob/plex-requests/internal/models"
+	"github.com/jacob-fain/MRS/internal/models"
 	"gorm.io/gorm"
 )
 

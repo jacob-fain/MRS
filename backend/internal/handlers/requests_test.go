@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jacob/plex-requests/internal/models"
-	"github.com/jacob/plex-requests/internal/testutil"
+	"github.com/jacob-fain/MRS/internal/models"
+	"github.com/jacob-fain/MRS/internal/testutil"
 )
 
 func TestRequestHandler_GetRequests(t *testing.T) {

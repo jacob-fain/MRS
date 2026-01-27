@@ -3,8 +3,8 @@ package services
 import (
 	"testing"
 
-	"github.com/jacob/plex-requests/internal/models"
-	"github.com/jacob/plex-requests/internal/testutil"
+	"github.com/jacob-fain/MRS/internal/models"
+	"github.com/jacob-fain/MRS/internal/testutil"
 )
 
 func TestRequestService_GetPendingRequests(t *testing.T) {

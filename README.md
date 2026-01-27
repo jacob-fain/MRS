@@ -1,4 +1,4 @@
-# Plex Requests
+# MRS - Media Request System
 
 A modern web application for managing movie and TV show requests for your Plex Media Server.
 
@@ -42,8 +42,8 @@ A modern web application for managing movie and TV show requests for your Plex M
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/plex-requests.git
-cd plex-requests
+git clone https://github.com/jacob-fain/MRS.git
+cd MRS
 ```
 
 2. Copy the environment example file:
