@@ -4,12 +4,12 @@ A modern web application for managing movie and TV show requests for your Plex M
 
 ## Features
 
-- 🎬 Search for movies and TV shows using TMDB API
-- 📝 Submit and track media requests
-- 👥 User authentication and authorization
-- 🔐 Admin panel for request management
-- 📱 Responsive design for mobile and desktop
-- 🚀 Fast and modern tech stack
+- Search for movies and TV shows using TMDB API
+- Submit and track media requests
+- User authentication and authorization
+- Admin panel for request management
+- Responsive design for mobile and desktop
+- Fast and modern tech stack
 
 ## Tech Stack
 
