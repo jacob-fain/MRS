@@ -58,10 +58,11 @@ const Search = () => {
     const popularity = media.popularity || 0;
     const voteCount = media.vote_count || 0;
     
-    // POPULARITY-FIRST algorithm: popularity dominates, minimal vote_count influence
-    // This ensures main movies (high popularity) always rank above niche shows (low popularity)
-    // regardless of their ratings
-    const score = popularity + (voteCount / 1000);
+    // MEDIA TYPE WEIGHTING: Movies get significant boost over TV shows
+    // This ensures main movies rank above TV shows regardless of TMDB popularity scores
+    const mediaTypeMultiplier = media.media_type === 'movie' ? 2.5 : 1.0;
+    
+    const score = (popularity * mediaTypeMultiplier) + (voteCount / 1000);
     
     return score;
   };
@@ -82,14 +83,29 @@ const Search = () => {
     const sortedResultsArray = [...searchResults.results].sort((a, b) => {
       const scoreA = calculateRelevanceScore(a);
       const scoreB = calculateRelevanceScore(b);
+      
+      // DEBUG: Log the comparison for Star Wars results
+      if (debouncedQuery.toLowerCase().includes('star wars')) {
+        console.log(`Comparing: "${a.title || a.name}" (pop: ${a.popularity}, score: ${scoreA.toFixed(2)}) vs "${b.title || b.name}" (pop: ${b.popularity}, score: ${scoreB.toFixed(2)})`);
+      }
+      
       return scoreB - scoreA; // Higher scores first
     });
+    
+    // DEBUG: Log the final sorted order for Star Wars
+    if (debouncedQuery.toLowerCase().includes('star wars') && sortedResultsArray.length > 0) {
+      console.log('=== FINAL STAR WARS SORT ORDER ===');
+      sortedResultsArray.slice(0, 10).forEach((item, index) => {
+        const score = calculateRelevanceScore(item);
+        console.log(`${index + 1}. "${item.title || item.name}" - Popularity: ${item.popularity}, Score: ${score.toFixed(2)}, Type: ${item.media_type}`);
+      });
+    }
     
     return {
       ...searchResults,
       results: sortedResultsArray
     };
-  }, [searchResults]);
+  }, [searchResults, debouncedQuery]);
 
   // Get user's existing requests
   const { data: userRequests } = useQuery({
