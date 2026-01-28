@@ -86,7 +86,7 @@ func (h *searchHandler) SearchMedia(c *gin.Context) {
 				}
 			}
 			
-			if title != "" {
+			if title != "" && h.plexService != nil {
 				exists, _ := h.plexService.CheckIfExists(title, year, result.MediaType)
 				result.InPlex = exists
 			}
