@@ -57,11 +57,11 @@ const Search = () => {
   const calculateRelevanceScore = (media) => {
     const popularity = media.popularity || 0;
     const voteCount = media.vote_count || 0;
-    const voteAverage = media.vote_average || 0;
     
-    // Weighted scoring: popularity is primary, vote_count secondary, vote_average tertiary
-    // Higher scores = more relevant/mainstream content
-    const score = (popularity * 3) + (voteCount / 50) + (voteAverage * 0.5);
+    // POPULARITY-FIRST algorithm: popularity dominates, minimal vote_count influence
+    // This ensures main movies (high popularity) always rank above niche shows (low popularity)
+    // regardless of their ratings
+    const score = popularity + (voteCount / 1000);
     
     return score;
   };
