@@ -82,7 +82,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
         {posterUrl && !imageError && (
           <img
             src={posterUrl}
-            alt={title}
+            alt=""
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
               imageLoading ? 'opacity-0' : 'opacity-100'
             }`}
