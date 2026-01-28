@@ -30,6 +30,7 @@ const Search = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [showTVShows, setShowTVShows] = useState(false);
   const queryClient = useQueryClient();
 
   // Debounce search input
@@ -53,16 +54,16 @@ const Search = () => {
     setPage(1);
   };
 
-  // Calculate relevance score for sorting
-  const calculateRelevanceScore = (media) => {
-    const popularity = media.popularity || 0;
+  // Calculate mainstream score for sorting (vote_count is primary indicator of mainstream appeal)
+  const calculateMainstreamScore = (media) => {
     const voteCount = media.vote_count || 0;
+    const popularity = media.popularity || 0;
+    const voteAverage = media.vote_average || 0;
     
-    // MEDIA TYPE WEIGHTING: Movies get significant boost over TV shows
-    // This ensures main movies rank above TV shows regardless of TMDB popularity scores
-    const mediaTypeMultiplier = media.media_type === 'movie' ? 2.5 : 1.0;
-    
-    const score = (popularity * mediaTypeMultiplier) + (voteCount / 1000);
+    // vote_count is the best indicator of how "mainstream" content is
+    // More votes = more people have seen it = more mainstream
+    // Secondary factors: popularity and quality
+    const score = (voteCount * 0.1) + (popularity * 0.3) + (voteAverage * 0.1);
     
     return score;
   };
@@ -76,36 +77,50 @@ const Search = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Sort results by relevance score
-  const sortedResults = useMemo(() => {
+  // Filter and sort results
+  const filteredAndSortedResults = useMemo(() => {
     if (!searchResults?.results) return searchResults;
     
-    const sortedResultsArray = [...searchResults.results].sort((a, b) => {
-      const scoreA = calculateRelevanceScore(a);
-      const scoreB = calculateRelevanceScore(b);
-      
-      // DEBUG: Log the comparison for Star Wars results
-      if (debouncedQuery.toLowerCase().includes('star wars')) {
-        console.log(`Comparing: "${a.title || a.name}" (pop: ${a.popularity}, score: ${scoreA.toFixed(2)}) vs "${b.title || b.name}" (pop: ${b.popularity}, score: ${scoreB.toFixed(2)})`);
-      }
-      
+    // 1. Filter by media type based on toggle
+    let filteredResults = searchResults.results;
+    if (!showTVShows) {
+      filteredResults = filteredResults.filter(item => item.media_type === 'movie');
+    }
+    
+    // 2. Separate movies and TV shows for different sorting
+    const movies = filteredResults.filter(item => item.media_type === 'movie');
+    const tvShows = filteredResults.filter(item => item.media_type === 'tv');
+    
+    // 3. Sort each type by mainstream score
+    const sortedMovies = [...movies].sort((a, b) => {
+      const scoreA = calculateMainstreamScore(a);
+      const scoreB = calculateMainstreamScore(b);
       return scoreB - scoreA; // Higher scores first
     });
     
-    // DEBUG: Log the final sorted order for Star Wars
-    if (debouncedQuery.toLowerCase().includes('star wars') && sortedResultsArray.length > 0) {
-      console.log('=== FINAL STAR WARS SORT ORDER ===');
-      sortedResultsArray.slice(0, 10).forEach((item, index) => {
-        const score = calculateRelevanceScore(item);
-        console.log(`${index + 1}. "${item.title || item.name}" - Popularity: ${item.popularity}, Score: ${score.toFixed(2)}, Type: ${item.media_type}`);
+    const sortedTVShows = [...tvShows].sort((a, b) => {
+      const scoreA = calculateMainstreamScore(a);
+      const scoreB = calculateMainstreamScore(b);
+      return scoreB - scoreA; // Higher scores first
+    });
+    
+    // 4. Combine: movies first, then TV shows
+    const finalResults = [...sortedMovies, ...sortedTVShows];
+    
+    // Debug logging
+    if (debouncedQuery.toLowerCase().includes('star wars') && finalResults.length > 0) {
+      console.log('=== SEARCH RESULTS (Movies First) ===');
+      finalResults.slice(0, 10).forEach((item, index) => {
+        const score = calculateMainstreamScore(item);
+        console.log(`${index + 1}. "${item.title || item.name}" - Type: ${item.media_type}, Votes: ${item.vote_count}, Pop: ${item.popularity}, Score: ${score.toFixed(2)}`);
       });
     }
     
     return {
       ...searchResults,
-      results: sortedResultsArray
+      results: finalResults
     };
-  }, [searchResults, debouncedQuery]);
+  }, [searchResults, showTVShows, debouncedQuery]);
 
   // Get user's existing requests
   const { data: userRequests } = useQuery({
@@ -138,9 +153,13 @@ const Search = () => {
     );
   };
 
-  const hasResults = sortedResults?.results?.length > 0;
+  const hasResults = filteredAndSortedResults?.results?.length > 0;
   const showEmptyState = debouncedQuery.length > 0 && !isLoading && !hasResults;
   const showInitialState = searchQuery === '' && debouncedQuery === '';
+
+  // Calculate total counts for display
+  const movieCount = searchResults?.results?.filter(item => item.media_type === 'movie').length || 0;
+  const tvCount = searchResults?.results?.filter(item => item.media_type === 'tv').length || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -154,7 +173,7 @@ const Search = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-12">
+        <div className="max-w-2xl mx-auto mb-8">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -188,15 +207,36 @@ const Search = () => {
             )}
           </div>
           
-          {/* Search Stats with relevance note */}
-          {sortedResults && hasResults && (
-            <div className="mt-4 text-center">
+          {/* Filter Controls */}
+          {searchResults && (movieCount > 0 || tvCount > 0) && (
+            <div className="mt-4 flex items-center justify-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="showTVShows"
+                  checked={showTVShows}
+                  onChange={(e) => setShowTVShows(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="showTVShows" className="text-sm font-medium text-gray-700">
+                  Show TV Shows ({tvCount})
+                </label>
+              </div>
+              <div className="text-sm text-gray-500">
+                Movies: {movieCount} • Currently showing: {filteredAndSortedResults?.results?.length || 0}
+              </div>
+            </div>
+          )}
+          
+          {/* Search Stats */}
+          {filteredAndSortedResults && hasResults && (
+            <div className="mt-2 text-center">
               <p className="text-sm text-gray-600">
-                Found <span className="font-semibold text-gray-900">{sortedResults.total_results.toLocaleString()}</span> results for 
+                Found <span className="font-semibold text-gray-900">{searchResults?.total_results?.toLocaleString()}</span> results for 
                 <span className="font-semibold text-gray-900"> "{debouncedQuery}"</span>
-                <span className="text-gray-500"> • Sorted by relevance</span>
-                {sortedResults.total_pages > 1 && (
-                  <span> • Page {page} of {sortedResults.total_pages}</span>
+                <span className="text-gray-500"> • Sorted by mainstream appeal</span>
+                {searchResults?.total_pages > 1 && (
+                  <span> • Page {page} of {searchResults.total_pages}</span>
                 )}
               </p>
             </div>
@@ -239,10 +279,10 @@ const Search = () => {
             </div>
           )}
 
-          {/* Results - Now using sortedResults */}
+          {/* Results */}
           {hasResults && !error && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-              {sortedResults.results.map((media) => (
+              {filteredAndSortedResults.results.map((media) => (
                 <MediaCard
                   key={`${media.media_type}-${media.id}`}
                   media={media}
@@ -254,7 +294,7 @@ const Search = () => {
           )}
 
           {/* Pagination */}
-          {sortedResults && sortedResults.total_pages > 1 && !error && (
+          {filteredAndSortedResults && searchResults?.total_pages > 1 && !error && (
             <div className="flex items-center justify-center space-x-4 mt-12 mb-8">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -269,10 +309,10 @@ const Search = () => {
 
               <div className="flex items-center space-x-2">
                 {Array.from(
-                  { length: Math.min(5, sortedResults.total_pages) },
+                  { length: Math.min(5, searchResults.total_pages) },
                   (_, i) => {
-                    const pageNum = Math.max(1, Math.min(sortedResults.total_pages - 4, page - 2)) + i;
-                    if (pageNum > sortedResults.total_pages) return null;
+                    const pageNum = Math.max(1, Math.min(searchResults.total_pages - 4, page - 2)) + i;
+                    if (pageNum > searchResults.total_pages) return null;
                     return (
                       <button
                         key={pageNum}
@@ -291,8 +331,8 @@ const Search = () => {
               </div>
 
               <button
-                onClick={() => setPage(p => Math.min(sortedResults.total_pages, p + 1))}
-                disabled={page === sortedResults.total_pages}
+                onClick={() => setPage(p => Math.min(searchResults.total_pages, p + 1))}
+                disabled={page === searchResults.total_pages}
                 className="flex items-center space-x-2 px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 <span>Next</span>
@@ -312,11 +352,16 @@ const Search = () => {
                 </svg>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Results Found</h3>
                 <p className="text-gray-600 mb-4">
-                  We couldn't find any movies or TV shows matching <span className="font-semibold">"{debouncedQuery}"</span>
+                  We couldn't find any {showTVShows ? 'movies or TV shows' : 'movies'} matching <span className="font-semibold">"{debouncedQuery}"</span>
                 </p>
-                <p className="text-sm text-gray-500">
-                  Try adjusting your search terms or browsing popular content.
-                </p>
+                {!showTVShows && tvCount > 0 && (
+                  <button
+                    onClick={() => setShowTVShows(true)}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Show TV Shows ({tvCount} available)
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -332,16 +377,16 @@ const Search = () => {
                 </div>
                 <h3 className="text-xl font-medium text-gray-900 mb-3">Start Your Search</h3>
                 <p className="text-gray-600 mb-6">
-                  Search through our extensive database of movies and TV shows. Results are sorted by relevance with popular content first.
+                  Search through our extensive database of movies and TV shows. Movies are shown first, with TV shows available via toggle.
                 </p>
                 <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 max-w-sm mx-auto">
                   <div className="text-center">
                     <div className="font-semibold text-gray-700 text-lg">Movies</div>
-                    <div>Latest releases and classics</div>
+                    <div>Shown by default</div>
                   </div>
                   <div className="text-center">
                     <div className="font-semibold text-gray-700 text-lg">TV Shows</div>
-                    <div>Series and documentaries</div>
+                    <div>Toggle to include</div>
                   </div>
                 </div>
               </div>
