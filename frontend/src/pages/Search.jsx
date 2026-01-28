@@ -31,70 +31,10 @@ const Search = () => {
     setPage(1);
   };
 
-  // SMART ALGORITHM: Identify main franchise content vs random stuff
+  // PURE VOTE COUNT ALGORITHM - Simple and effective
   const calculateRelevanceScore = (media) => {
-    const voteCount = media.vote_count || 0;
-    const popularity = media.popularity || 0;
-    const title = (media.title || media.name || '').toLowerCase();
-    const isMovie = media.media_type === 'movie';
-    
-    // MAIN STAR WARS FILMS: Episodes, main titles, major spin-offs
-    const isMainStarWarsMovie = isMovie && (
-      (title.match(/^star wars(\s|:)/) && (
-        title.includes('episode') ||           // Episode I-IX
-        title.includes('new hope') ||          // A New Hope
-        title.includes('empire strikes') ||    // Empire Strikes Back  
-        title.includes('return of the jedi') ||// Return of the Jedi
-        title.includes('phantom menace') ||    // Episode I
-        title.includes('attack of the clones') ||// Episode II
-        title.includes('revenge of the sith') ||// Episode III
-        title.includes('force awakens') ||     // Episode VII
-        title.includes('last jedi') ||         // Episode VIII
-        title.includes('rise of skywalker') || // Episode IX
-        (voteCount > 15000 && title.length < 30) // High vote count, simple title
-      )) ||
-      // Major spin-offs (different title patterns)
-      (title.includes('rogue one') && voteCount > 5000) ||    // Rogue One (major)
-      (title.includes('solo') && voteCount > 5000)            // Solo (major)
-    );
-    
-    // MAJOR TV SHOWS: Clone Wars, Rebels (with high vote counts)
-    const isMajorStarWarsTV = !isMovie && title.match(/^star wars(\s|:)/) && (
-      (title.includes('clone wars') && voteCount > 1000) ||
-      (title.includes('rebels') && voteCount > 500) ||
-      (title.includes('mandalorian') && voteCount > 1000)
-    );
-    
-    // RANDOM UNRELATED CONTENT: Doraemon, documentaries, fan films
-    const isUnrelated = (
-      title.includes('doraemon') ||
-      title.includes('nobita') || 
-      title.includes('star wars kid') ||
-      title.includes('equilibrium knight') ||
-      title.includes('fan film') ||
-      (voteCount < 50 && !title.match(/^star wars(\s|:)/))
-    );
-    
-    // SCORING
-    if (isUnrelated) {
-      // Penalty for unrelated content
-      return voteCount * 0.1;
-    } else if (isMainStarWarsMovie) {
-      // MASSIVE boost for main Star Wars films
-      return (voteCount * 10000) + (popularity * 1000) + 10000000;
-    } else if (isMajorStarWarsTV) {
-      // Good boost for major TV shows
-      return (voteCount * 1000) + (popularity * 100) + 1000000;
-    } else if (isMovie && title.match(/^star wars(\s|:)/)) {
-      // Medium boost for other Star Wars movies
-      return (voteCount * 100) + (popularity * 10) + 100000;
-    } else if (!isMovie && title.match(/^star wars(\s|:)/)) {
-      // Small boost for other Star Wars TV
-      return (voteCount * 10) + (popularity * 2) + 10000;
-    } else {
-      // Default scoring for everything else
-      return (voteCount * 2) + popularity;
-    }
+    // Return vote count directly - higher vote count = more mainstream
+    return media.vote_count || 0;
   };
 
   const { data: searchResults, isLoading, error } = useQuery({
@@ -105,30 +45,44 @@ const Search = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Sort results by smart relevance score
+  // Sort results by pure vote count
   const sortedResults = useMemo(() => {
     if (!searchResults?.results) return searchResults;
     
     const sortedResultsArray = [...searchResults.results].sort((a, b) => {
       const scoreA = calculateRelevanceScore(a);
       const scoreB = calculateRelevanceScore(b);
-      return scoreB - scoreA; // Higher scores first
+      return scoreB - scoreA; // Higher vote counts first
     });
     
-    // Debug logging
+    // Debug logging to verify sorting works
     if (debouncedQuery.toLowerCase().includes('star wars')) {
-      console.log('=== SMART STAR WARS ALGORITHM ===');
+      console.log('=== PURE VOTE COUNT SORTING ===');
+      console.log('Sorted by vote count (highest first):');
       sortedResultsArray.slice(0, 15).forEach((item, index) => {
-        const score = calculateRelevanceScore(item);
-        const title = item.title || item.name;
         const votes = item.vote_count || 0;
-        const year = (item.release_date || item.first_air_date || '').substring(0, 4);
-        const category = score > 10000000 ? 'MAIN' : 
-                        score > 1000000 ? 'MAJOR' : 
-                        score > 100000 ? 'OTHER' : 
-                        score > 10000 ? 'TV' : 'MISC';
-        console.log(`${(index + 1).toString().padStart(2)}. ${title} (${year}) - ${item.media_type} - Votes: ${votes.toString().padStart(5)} - Score: ${score.toFixed(0).padStart(10)} - ${category}`);
+        const title = item.title || item.name;
+        const media_type = item.media_type;
+        console.log(`${(index + 1).toString().padStart(2)}. ${title} - ${votes.toLocaleString()} votes - ${media_type}`);
       });
+      
+      // Validation check
+      const majorMovies = sortedResultsArray.filter(item => 
+        item.media_type === 'movie' && (item.vote_count || 0) > 8000
+      ).slice(0, 7);
+      
+      const doraemonItems = sortedResultsArray.filter(item => 
+        (item.title || item.name || '').toLowerCase().includes('doraemon')
+      );
+      
+      console.log('\\nValidation:');
+      console.log(`Major movies in top 7: ${majorMovies.length}/7`);
+      if (doraemonItems.length > 0) {
+        const doraemonRanks = doraemonItems.map(item => 
+          sortedResultsArray.indexOf(item) + 1
+        );
+        console.log(`Doraemon ranks: ${doraemonRanks.join(', ')} (should be 14+)`);
+      }
     }
     
     return {
@@ -171,7 +125,7 @@ const Search = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Search Media</h1>
-          <p className="text-xl text-gray-600">Smart algorithm: Main franchise content first, random stuff penalized</p>
+          <p className="text-xl text-gray-600">Sorted by vote count (mainstream appeal)</p>
         </div>
 
         <div className="max-w-2xl mx-auto mb-8">
@@ -192,7 +146,7 @@ const Search = () => {
           
           {sortedResults?.results?.length > 0 && (
             <div className="mt-4 text-center text-sm text-gray-600">
-              Smart relevance: Main franchise content first, unrelated content penalized
+              Sorted by vote count - most voted (mainstream) content first
             </div>
           )}
         </div>
@@ -253,10 +207,10 @@ const Search = () => {
             <div className="max-w-lg mx-auto">
               <h3 className="text-xl font-medium text-gray-900 mb-3">Search Movies & TV Shows</h3>
               <p className="text-gray-600">
-                Smart algorithm identifies main franchise content and prioritizes it over random unrelated items.
+                Results sorted by vote count. More votes = more mainstream = higher relevance.
               </p>
               <div className="mt-4 text-sm text-gray-500">
-                Main films: 10M+ score • Major TV: 1M+ score • Other: lower scores • Unrelated: penalized
+                Algorithm: Pure vote count sorting (simple and effective)
               </div>
             </div>
           </div>
