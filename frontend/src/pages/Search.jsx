@@ -31,9 +31,8 @@ const Search = () => {
     setPage(1);
   };
 
-  // PURE VOTE COUNT ALGORITHM - Simple and effective
+  // Pure vote count algorithm - higher vote count = more mainstream
   const calculateRelevanceScore = (media) => {
-    // Return vote count directly - higher vote count = more mainstream
     return media.vote_count || 0;
   };
 
@@ -45,7 +44,7 @@ const Search = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Sort results by pure vote count
+  // Sort results by vote count (mainstream appeal)
   const sortedResults = useMemo(() => {
     if (!searchResults?.results) return searchResults;
     
@@ -55,34 +54,14 @@ const Search = () => {
       return scoreB - scoreA; // Higher vote counts first
     });
     
-    // Debug logging to verify sorting works
+    // Optional debug for Star Wars searches
     if (debouncedQuery.toLowerCase().includes('star wars')) {
-      console.log('=== PURE VOTE COUNT SORTING ===');
-      console.log('Sorted by vote count (highest first):');
-      sortedResultsArray.slice(0, 15).forEach((item, index) => {
+      console.log('=== VOTE COUNT SORTING RESULTS ===');
+      sortedResultsArray.slice(0, 10).forEach((item, index) => {
         const votes = item.vote_count || 0;
         const title = item.title || item.name;
-        const media_type = item.media_type;
-        console.log(`${(index + 1).toString().padStart(2)}. ${title} - ${votes.toLocaleString()} votes - ${media_type}`);
+        console.log(`${(index + 1).toString().padStart(2)}. ${title} - ${votes.toLocaleString()} votes`);
       });
-      
-      // Validation check
-      const majorMovies = sortedResultsArray.filter(item => 
-        item.media_type === 'movie' && (item.vote_count || 0) > 8000
-      ).slice(0, 7);
-      
-      const doraemonItems = sortedResultsArray.filter(item => 
-        (item.title || item.name || '').toLowerCase().includes('doraemon')
-      );
-      
-      console.log('\\nValidation:');
-      console.log(`Major movies in top 7: ${majorMovies.length}/7`);
-      if (doraemonItems.length > 0) {
-        const doraemonRanks = doraemonItems.map(item => 
-          sortedResultsArray.indexOf(item) + 1
-        );
-        console.log(`Doraemon ranks: ${doraemonRanks.join(', ')} (should be 14+)`);
-      }
     }
     
     return {
@@ -210,7 +189,7 @@ const Search = () => {
                 Results sorted by vote count. More votes = more mainstream = higher relevance.
               </p>
               <div className="mt-4 text-sm text-gray-500">
-                Algorithm: Pure vote count sorting (simple and effective)
+                Algorithm: Pure vote count sorting
               </div>
             </div>
           </div>
