@@ -23,7 +23,7 @@ const Layout = ({ children }) => {
           <div className="flex justify-between h-16">
             <div className="flex">
               <Link to="/" className="flex items-center">
-                <span className="text-xl font-bold text-gray-800">Plex Requests</span>
+                <span className="text-xl font-bold text-gray-800">MRS</span>
               </Link>
               
               {user && (

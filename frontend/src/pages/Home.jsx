@@ -33,7 +33,7 @@ const Home = () => {
     return (
       <div className="text-center py-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Welcome to Plex Requests
+          Welcome to MRS
         </h1>
         <p className="text-xl text-gray-600 mb-8">
           Request movies and TV shows for your Plex Media Server
