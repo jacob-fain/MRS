@@ -33,3 +33,26 @@ To test TMDB integration:
 - Verify admin approval process
 - Test request status updates
 
+
+## Critical Fix: CORS and Docker Networking ✅ COMPLETED
+
+**Issue:** CORS errors when trying to login/register  
+**Error:** "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://mrs-backend:8080"
+
+### The Problem
+
+
+### The Solution  
+
+
+### Key Learning
+- **Docker internal networking** (mrs-backend:8080) works for container-to-container
+- **Browser networking** needs accessible hostnames (localhost, IP addresses)  
+- Frontend React apps run client-side, not inside Docker containers
+
+### Working Test Account
+- Email: final@test.com
+- Password: test123
+
+**Status:** Authentication (login/register) and search now fully functional.
+
