@@ -19,7 +19,7 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
     : '/placeholder-poster.png';
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-gray-800 rounded-lg shadow-md p-6 border border-gray-700">
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-shrink-0">
           <img
@@ -35,8 +35,8 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
         <div className="flex-1 space-y-2">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{request.title}</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="text-lg font-semibold text-white">{request.title}</h3>
+              <p className="text-sm text-gray-400">
                 {request.year} • {request.media_type === 'movie' ? 'Movie' : 'TV Show'}
               </p>
             </div>
@@ -46,7 +46,7 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
               </span>
               <button
                 onClick={onDelete}
-                className="text-red-600 hover:text-red-800"
+                className="text-red-400 hover:text-red-300 transition-colors"
                 title="Delete request"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +56,7 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
             </div>
           </div>
           
-          <p className="text-sm text-gray-600 line-clamp-2">
+          <p className="text-sm text-gray-300 line-clamp-2">
             {request.overview || 'No description available'}
           </p>
           
@@ -67,11 +67,11 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
           {/* User Notes */}
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-medium text-gray-700">Your Notes</label>
+              <label className="text-sm font-medium text-gray-300">Your Notes</label>
               {!isEditingNotes && (
                 <button
                   onClick={() => setIsEditingNotes(true)}
-                  className="text-xs text-blue-600 hover:text-blue-800"
+                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   Edit
                 </button>
@@ -82,27 +82,27 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white placeholder-gray-400"
                   rows="2"
                   placeholder="Add any notes about this request..."
                 />
                 <div className="flex space-x-2">
                   <button
                     onClick={handleSaveNotes}
-                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700"
+                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
                   >
                     Save
                   </button>
                   <button
                     onClick={handleCancelEdit}
-                    className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded-md hover:bg-gray-400"
+                    className="px-3 py-1 bg-gray-600 text-gray-200 text-xs rounded-md hover:bg-gray-500 transition-colors"
                   >
                     Cancel
                   </button>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-600 italic">
+              <p className="text-sm text-gray-400 italic">
                 {request.notes || 'No notes added'}
               </p>
             )}
@@ -110,9 +110,9 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
           
           {/* Admin Notes */}
           {request.admin_notes && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700 mb-1">Admin Notes</p>
-              <p className="text-sm text-gray-600">{request.admin_notes}</p>
+            <div className="mt-3 p-3 bg-gray-700 rounded-md border border-gray-600">
+              <p className="text-sm font-medium text-gray-200 mb-1">Admin Notes</p>
+              <p className="text-sm text-gray-300">{request.admin_notes}</p>
             </div>
           )}
         </div>
