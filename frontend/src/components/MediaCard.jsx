@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const MediaCard = ({ media, onRequest, isRequested }) => {
+  const navigate = useNavigate();
+  
   const title = media.title || media.name;
   const releaseDate = media.release_date || media.first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
@@ -8,8 +11,26 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
     ? `https://image.tmdb.org/t/p/w342${media.poster_path}`
     : '/placeholder-poster.png');
 
+  const handleCardClick = (e) => {
+    // Don't navigate if clicking on the request button
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+      return;
+    }
+    
+    const mediaType = media.media_type || 'movie';
+    navigate(`/movie/${mediaType}/${media.id}`);
+  };
+
+  const handleRequestClick = (e) => {
+    e.stopPropagation(); // Prevent card click navigation
+    onRequest();
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+    <div 
+      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all cursor-pointer transform hover:scale-105"
+      onClick={handleCardClick}
+    >
       <div className="relative aspect-[2/3]">
         <img
           src={posterUrl}
@@ -51,6 +72,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
             <button
               disabled
               className="w-full py-2 px-4 bg-gray-300 text-gray-500 rounded-md text-sm font-medium cursor-not-allowed"
+              onClick={(e) => e.stopPropagation()}
             >
               Already in Plex
             </button>
@@ -58,17 +80,22 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
             <button
               disabled
               className="w-full py-2 px-4 bg-gray-300 text-gray-500 rounded-md text-sm font-medium cursor-not-allowed"
+              onClick={(e) => e.stopPropagation()}
             >
               Already Requested
             </button>
           ) : (
             <button
-              onClick={onRequest}
+              onClick={handleRequestClick}
               className="w-full py-2 px-4 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Request
             </button>
           )}
+        </div>
+        
+        <div className="mt-2 text-center">
+          <span className="text-xs text-gray-400">Click for details</span>
         </div>
       </div>
     </div>

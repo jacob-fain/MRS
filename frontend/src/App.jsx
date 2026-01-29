@@ -12,6 +12,7 @@ import Register from './pages/Register';
 import Search from './pages/Search';
 import Requests from './pages/Requests';
 import Admin from './pages/Admin';
+import MovieDetail from './pages/MovieDetail';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -48,6 +49,16 @@ function App() {
                 <PrivateRoute>
                   <Layout>
                     <Search />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/movie/:type/:id"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <MovieDetail />
                   </Layout>
                 </PrivateRoute>
               }

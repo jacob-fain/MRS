@@ -1,0 +1,274 @@
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import mediaService from '../services/media.service';
+import requestService from '../services/request.service';
+
+const MovieDetail = () => {
+  const { type, id } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: mediaDetails, isLoading, error } = useQuery({
+    queryKey: ['mediaDetails', type, id],
+    queryFn: () => mediaService.getMediaDetails(type, id),
+    enabled: !!(type && id),
+  });
+
+  const { data: userRequests } = useQuery({
+    queryKey: ['userRequests'],
+    queryFn: () => requestService.getRequests(),
+  });
+
+  const handleRequest = async () => {
+    try {
+      await requestService.createRequest({
+        title: mediaDetails.title || mediaDetails.name,
+        year: mediaDetails.release_date ? parseInt(mediaDetails.release_date.substring(0, 4)) : 
+              mediaDetails.first_air_date ? parseInt(mediaDetails.first_air_date.substring(0, 4)) : 0,
+        media_type: type,
+        tmdb_id: parseInt(id),
+        overview: mediaDetails.overview,
+        poster_path: mediaDetails.poster_path,
+      });
+      queryClient.invalidateQueries(['userRequests']);
+    } catch (err) {
+      console.error('Failed to create request:', err);
+    }
+  };
+
+  const isRequested = () => {
+    if (!userRequests?.requests || !mediaDetails) return false;
+    return userRequests.requests.some(
+      (req) => req.tmdb_id === parseInt(id) && req.media_type === type
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error || !mediaDetails) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error loading details</h2>
+          <button 
+            onClick={() => navigate(-1)}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            ← Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const title = mediaDetails.title || mediaDetails.name;
+  const releaseDate = mediaDetails.release_date || mediaDetails.first_air_date;
+  const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
+  const posterUrl = mediaDetails.poster_url || (mediaDetails.poster_path 
+    ? `https://image.tmdb.org/t/p/w500${mediaDetails.poster_path}`
+    : '/placeholder-poster.png');
+  const backdropUrl = mediaDetails.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${mediaDetails.backdrop_path}`
+    : null;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section with Backdrop */}
+      {backdropUrl && (
+        <div className="relative h-96 overflow-hidden">
+          <img 
+            src={backdropUrl} 
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+          <button 
+            onClick={() => navigate(-1)}
+            className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all"
+          >
+            ← Back
+          </button>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Poster and Actions */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <img
+                src={posterUrl}
+                alt={title}
+                className="w-full object-cover"
+                onError={(e) => {
+                  e.target.src = '/placeholder-poster.png';
+                }}
+              />
+              
+              <div className="p-6">
+                {mediaDetails.in_plex ? (
+                  <button
+                    disabled
+                    className="w-full py-3 px-4 bg-gray-300 text-gray-500 rounded-md font-medium cursor-not-allowed"
+                  >
+                    Already in Plex
+                  </button>
+                ) : isRequested() ? (
+                  <button
+                    disabled
+                    className="w-full py-3 px-4 bg-gray-300 text-gray-500 rounded-md font-medium cursor-not-allowed"
+                  >
+                    Already Requested
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleRequest}
+                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Request {type === 'movie' ? 'Movie' : 'TV Show'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Additional Info Card */}
+            <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Details</h3>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Release Date</dt>
+                  <dd className="text-sm text-gray-900">{releaseDate || 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Rating</dt>
+                  <dd className="text-sm text-gray-900 flex items-center">
+                    <svg className="w-4 h-4 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20">
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                    </svg>
+                    {mediaDetails.vote_average?.toFixed(1) || 'N/A'} / 10
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Vote Count</dt>
+                  <dd className="text-sm text-gray-900">{mediaDetails.vote_count?.toLocaleString() || 'N/A'}</dd>
+                </div>
+                {mediaDetails.runtime && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Runtime</dt>
+                    <dd className="text-sm text-gray-900">{mediaDetails.runtime} minutes</dd>
+                  </div>
+                )}
+                {mediaDetails.genres && mediaDetails.genres.length > 0 && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Genres</dt>
+                    <dd className="text-sm text-gray-900">
+                      {mediaDetails.genres.map(genre => genre.name).join(', ')}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            {/* Title and Overview */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <span>{year}</span>
+                    <span>•</span>
+                    <span>{type === 'movie' ? 'Movie' : 'TV Show'}</span>
+                    {mediaDetails.in_plex && (
+                      <>
+                        <span>•</span>
+                        <span className="text-green-600 font-medium">Available in Plex</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">Overview</h2>
+                <p className="text-gray-700 leading-relaxed">
+                  {mediaDetails.overview || 'No description available.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Cast */}
+            {mediaDetails.credits && mediaDetails.credits.cast && mediaDetails.credits.cast.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Cast</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {mediaDetails.credits.cast.slice(0, 10).map((person) => (
+                    <div key={person.id} className="text-center">
+                      <div className="aspect-[3/4] mb-2">
+                        <img
+                          src={person.profile_path 
+                            ? `https://image.tmdb.org/t/p/w185${person.profile_path}` 
+                            : '/placeholder-person.png'}
+                          alt={person.name}
+                          className="w-full h-full object-cover rounded-md"
+                          onError={(e) => {
+                            e.target.src = '/placeholder-person.png';
+                          }}
+                        />
+                      </div>
+                      <h3 className="font-medium text-sm text-gray-900 truncate">{person.name}</h3>
+                      <p className="text-xs text-gray-500 truncate">{person.character}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Crew */}
+            {mediaDetails.credits && mediaDetails.credits.crew && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Crew</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {mediaDetails.credits.crew
+                    .filter(person => ['Director', 'Producer', 'Executive Producer', 'Screenplay', 'Writer'].includes(person.job))
+                    .slice(0, 9)
+                    .map((person, index) => (
+                      <div key={`${person.id}-${index}`} className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <img
+                            src={person.profile_path 
+                              ? `https://image.tmdb.org/t/p/w92${person.profile_path}` 
+                              : '/placeholder-person.png'}
+                            alt={person.name}
+                            className="w-12 h-12 object-cover rounded-full"
+                            onError={(e) => {
+                              e.target.src = '/placeholder-person.png';
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-sm text-gray-900 truncate">{person.name}</h3>
+                          <p className="text-xs text-gray-500 truncate">{person.job}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MovieDetail;
