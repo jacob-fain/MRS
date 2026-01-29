@@ -31,44 +31,100 @@ const Search = () => {
     setPage(1);
   };
 
-  // Pure vote count algorithm - higher vote count = more mainstream
-  const calculateRelevanceScore = (media) => {
-    return media.vote_count || 0;
+  // Multi-page fetch for proper sorting of first few pages
+  const fetchMultiplePages = async (query, startPage, pageCount) => {
+    const promises = [];
+    for (let i = 0; i < pageCount; i++) {
+      promises.push(mediaService.searchMedia(query, startPage + i, true));
+    }
+    
+    const results = await Promise.all(promises);
+    
+    // Combine all results
+    const allResults = [];
+    let totalResults = 0;
+    let totalPages = 0;
+    
+    for (const result of results) {
+      if (result.results) {
+        allResults.push(...result.results);
+      }
+      if (result.total_results) {
+        totalResults = result.total_results;
+        totalPages = result.total_pages;
+      }
+    }
+    
+    return {
+      results: allResults,
+      total_results: totalResults,
+      total_pages: totalPages
+    };
   };
 
+  // Determine if we need multi-page fetch (for first 3 pages)
+  const needsMultiPageFetch = page <= 3;
+
+  // Search query with multi-page logic
   const { data: searchResults, isLoading, error } = useQuery({
-    queryKey: ['search', debouncedQuery, page],
-    queryFn: () => mediaService.searchMedia(debouncedQuery, page, true),
+    queryKey: ['search', debouncedQuery, needsMultiPageFetch ? 'multi-page-1-3' : page],
+    queryFn: async () => {
+      if (needsMultiPageFetch) {
+        // Fetch first 3 pages for proper sorting
+        return await fetchMultiplePages(debouncedQuery, 1, 3);
+      } else {
+        // Normal single page fetch for page 4+
+        return await mediaService.searchMedia(debouncedQuery, page, true);
+      }
+    },
     enabled: debouncedQuery.length > 0,
     keepPreviousData: true,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Sort results by vote count (mainstream appeal)
-  const sortedResults = useMemo(() => {
+  // Sort and paginate results
+  const sortedAndPaginatedResults = useMemo(() => {
     if (!searchResults?.results) return searchResults;
-    
-    const sortedResultsArray = [...searchResults.results].sort((a, b) => {
-      const scoreA = calculateRelevanceScore(a);
-      const scoreB = calculateRelevanceScore(b);
-      return scoreB - scoreA; // Higher vote counts first
+
+    // Sort all results by vote count
+    const sortedResults = [...searchResults.results].sort((a, b) => {
+      const votesA = a.vote_count || 0;
+      const votesB = b.vote_count || 0;
+      return votesB - votesA;
     });
-    
-    // Optional debug for Star Wars searches
+
+    // Debug logging for Star Wars
     if (debouncedQuery.toLowerCase().includes('star wars')) {
-      console.log('=== VOTE COUNT SORTING RESULTS ===');
-      sortedResultsArray.slice(0, 10).forEach((item, index) => {
+      console.log('=== MULTI-PAGE VOTE COUNT SORTING ===');
+      console.log(`Sorted ${sortedResults.length} results from ${needsMultiPageFetch ? 'pages 1-3' : 'page ' + page}`);
+      sortedResults.slice(0, 10).forEach((item, index) => {
         const votes = item.vote_count || 0;
         const title = item.title || item.name;
         console.log(`${(index + 1).toString().padStart(2)}. ${title} - ${votes.toLocaleString()} votes`);
       });
     }
-    
-    return {
-      ...searchResults,
-      results: sortedResultsArray
-    };
-  }, [searchResults, debouncedQuery]);
+
+    if (needsMultiPageFetch) {
+      // For multi-page results, paginate the sorted results
+      const pageSize = 20;
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageResults = sortedResults.slice(startIndex, endIndex);
+      
+      return {
+        ...searchResults,
+        results: pageResults,
+        page: page,
+        total_pages: Math.ceil(sortedResults.length / pageSize)
+      };
+    } else {
+      // For single page results (page 4+), return as-is
+      return {
+        ...searchResults,
+        results: sortedResults
+      };
+    }
+  }, [searchResults, page, debouncedQuery, needsMultiPageFetch]);
 
   const { data: userRequests } = useQuery({
     queryKey: ['userRequests'],
@@ -104,7 +160,7 @@ const Search = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Search Media</h1>
-          <p className="text-xl text-gray-600">Sorted by vote count (mainstream appeal)</p>
+          <p className="text-xl text-gray-600">Multi-page sorting: First 3 pages sorted by vote count</p>
         </div>
 
         <div className="max-w-2xl mx-auto mb-8">
@@ -123,9 +179,12 @@ const Search = () => {
             )}
           </div>
           
-          {sortedResults?.results?.length > 0 && (
+          {sortedAndPaginatedResults?.results?.length > 0 && (
             <div className="mt-4 text-center text-sm text-gray-600">
-              Sorted by vote count - most voted (mainstream) content first
+              {needsMultiPageFetch 
+                ? `Pages 1-3: Sorted by vote count across all pages`
+                : `Page ${page}: Sorted within page`
+              }
             </div>
           )}
         </div>
@@ -138,10 +197,10 @@ const Search = () => {
           <div className="text-center py-8 text-red-600">Error: Failed to search</div>
         )}
 
-        {sortedResults && (
+        {sortedAndPaginatedResults && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedResults.results.map((media) => (
+              {sortedAndPaginatedResults.results.map((media) => (
                 <MediaCard
                   key={`${media.media_type}-${media.id}`}
                   media={media}
@@ -151,7 +210,7 @@ const Search = () => {
               ))}
             </div>
 
-            {sortedResults.total_pages > 1 && (
+            {sortedAndPaginatedResults.total_pages > 1 && (
               <div className="flex justify-center space-x-2 mt-8">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -161,11 +220,11 @@ const Search = () => {
                   Previous
                 </button>
                 <span className="px-4 py-2">
-                  Page {page} of {sortedResults.total_pages}
+                  Page {page} of {sortedAndPaginatedResults.total_pages}
                 </span>
                 <button
-                  onClick={() => setPage(p => Math.min(sortedResults.total_pages, p + 1))}
-                  disabled={page === sortedResults.total_pages}
+                  onClick={() => setPage(p => Math.min(sortedAndPaginatedResults.total_pages, p + 1))}
+                  disabled={page === sortedAndPaginatedResults.total_pages}
                   className="px-4 py-2 border rounded disabled:opacity-50"
                 >
                   Next
@@ -175,7 +234,7 @@ const Search = () => {
           </>
         )}
 
-        {debouncedQuery && !isLoading && (!sortedResults || sortedResults.results.length === 0) && (
+        {debouncedQuery && !isLoading && (!sortedAndPaginatedResults || sortedAndPaginatedResults.results.length === 0) && (
           <div className="text-center py-12">
             <p>No results found for "{debouncedQuery}"</p>
           </div>
@@ -186,10 +245,10 @@ const Search = () => {
             <div className="max-w-lg mx-auto">
               <h3 className="text-xl font-medium text-gray-900 mb-3">Search Movies & TV Shows</h3>
               <p className="text-gray-600">
-                Results sorted by vote count. More votes = more mainstream = higher relevance.
+                Smart pagination: First 3 pages are fetched and sorted together by vote count for optimal relevance.
               </p>
               <div className="mt-4 text-sm text-gray-500">
-                Algorithm: Pure vote count sorting
+                Pages 1-3: Multi-page sorting • Pages 4+: Single-page sorting
               </div>
             </div>
           </div>
