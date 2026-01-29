@@ -28,7 +28,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
 
   return (
     <div 
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all cursor-pointer transform hover:scale-105"
+      className="bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:scale-105 border border-gray-700"
       onClick={handleCardClick}
     >
       <div className="relative aspect-[2/3]">
@@ -48,22 +48,22 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
       </div>
       
       <div className="p-4">
-        <h3 className="font-semibold text-gray-900 line-clamp-1">{title}</h3>
+        <h3 className="font-semibold text-white line-clamp-1">{title}</h3>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-400">
             {year} • {media.media_type === 'movie' ? 'Movie' : 'TV Show'}
           </span>
           <div className="flex items-center">
             <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
               <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
             </svg>
-            <span className="text-sm text-gray-600 ml-1">
+            <span className="text-sm text-gray-300 ml-1">
               {media.vote_average?.toFixed(1) || 'N/A'}
             </span>
           </div>
         </div>
         
-        <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+        <p className="mt-2 text-sm text-gray-300 line-clamp-2">
           {media.overview || 'No description available'}
         </p>
         
@@ -71,7 +71,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
           {media.in_plex ? (
             <button
               disabled
-              className="w-full py-2 px-4 bg-gray-300 text-gray-500 rounded-md text-sm font-medium cursor-not-allowed"
+              className="w-full py-2 px-4 bg-gray-600 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed"
               onClick={(e) => e.stopPropagation()}
             >
               Already in Plex
@@ -79,7 +79,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
           ) : isRequested ? (
             <button
               disabled
-              className="w-full py-2 px-4 bg-gray-300 text-gray-500 rounded-md text-sm font-medium cursor-not-allowed"
+              className="w-full py-2 px-4 bg-gray-600 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed"
               onClick={(e) => e.stopPropagation()}
             >
               Already Requested
@@ -87,7 +87,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
           ) : (
             <button
               onClick={handleRequestClick}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-800"
             >
               Request
             </button>
@@ -95,7 +95,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
         </div>
         
         <div className="mt-2 text-center">
-          <span className="text-xs text-gray-400">Click for details</span>
+          <span className="text-xs text-gray-500">Click for details</span>
         </div>
       </div>
     </div>

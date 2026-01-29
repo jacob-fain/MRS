@@ -93,17 +93,6 @@ const Search = () => {
       return votesB - votesA;
     });
 
-    // Debug logging for Star Wars
-    if (debouncedQuery.toLowerCase().includes('star wars')) {
-      console.log('=== MULTI-PAGE VOTE COUNT SORTING ===');
-      console.log(`Sorted ${sortedResults.length} results from ${needsMultiPageFetch ? 'pages 1-3' : 'page ' + page}`);
-      sortedResults.slice(0, 10).forEach((item, index) => {
-        const votes = item.vote_count || 0;
-        const title = item.title || item.name;
-        console.log(`${(index + 1).toString().padStart(2)}. ${title} - ${votes.toLocaleString()} votes`);
-      });
-    }
-
     if (needsMultiPageFetch) {
       // For multi-page results, paginate the sorted results
       const pageSize = 20;
@@ -156,11 +145,11 @@ const Search = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Search Media</h1>
-          <p className="text-xl text-gray-600">Multi-page sorting: First 3 pages sorted by vote count</p>
+          <h1 className="text-4xl font-bold text-white mb-4">Search Media</h1>
+          <p className="text-xl text-gray-300">Discover movies and TV shows for your Plex library</p>
         </div>
 
         <div className="max-w-2xl mx-auto mb-8">
@@ -170,31 +159,25 @@ const Search = () => {
               value={searchQuery}
               onChange={handleSearchChange}
               placeholder="Search for movies, TV shows..."
-              className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-700 rounded-xl bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {searchQuery && (
-              <button onClick={clearSearch} className="absolute right-4 top-1/2 transform -translate-y-1/2">
+              <button 
+                onClick={clearSearch} 
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+              >
                 ✕
               </button>
             )}
           </div>
-          
-          {sortedAndPaginatedResults?.results?.length > 0 && (
-            <div className="mt-4 text-center text-sm text-gray-600">
-              {needsMultiPageFetch 
-                ? `Pages 1-3: Sorted by vote count across all pages`
-                : `Page ${page}: Sorted within page`
-              }
-            </div>
-          )}
         </div>
 
         {isLoading && (
-          <div className="text-center py-8">Loading...</div>
+          <div className="text-center py-8 text-white">Loading...</div>
         )}
 
         {error && (
-          <div className="text-center py-8 text-red-600">Error: Failed to search</div>
+          <div className="text-center py-8 text-red-400">Error: Failed to search</div>
         )}
 
         {sortedAndPaginatedResults && (
@@ -215,17 +198,17 @@ const Search = () => {
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 border rounded disabled:opacity-50"
+                  className="px-4 py-2 border border-gray-600 rounded bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
                 >
                   Previous
                 </button>
-                <span className="px-4 py-2">
+                <span className="px-4 py-2 text-white">
                   Page {page} of {sortedAndPaginatedResults.total_pages}
                 </span>
                 <button
                   onClick={() => setPage(p => Math.min(sortedAndPaginatedResults.total_pages, p + 1))}
                   disabled={page === sortedAndPaginatedResults.total_pages}
-                  className="px-4 py-2 border rounded disabled:opacity-50"
+                  className="px-4 py-2 border border-gray-600 rounded bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
                 >
                   Next
                 </button>
@@ -236,20 +219,17 @@ const Search = () => {
 
         {debouncedQuery && !isLoading && (!sortedAndPaginatedResults || sortedAndPaginatedResults.results.length === 0) && (
           <div className="text-center py-12">
-            <p>No results found for "{debouncedQuery}"</p>
+            <p className="text-gray-300">No results found for "{debouncedQuery}"</p>
           </div>
         )}
 
         {!debouncedQuery && (
           <div className="text-center py-16">
             <div className="max-w-lg mx-auto">
-              <h3 className="text-xl font-medium text-gray-900 mb-3">Search Movies & TV Shows</h3>
-              <p className="text-gray-600">
-                Smart pagination: First 3 pages are fetched and sorted together by vote count for optimal relevance.
+              <h3 className="text-xl font-medium text-white mb-3">Search Movies & TV Shows</h3>
+              <p className="text-gray-300">
+                Find content to add to your Plex library. Click on any result for detailed information.
               </p>
-              <div className="mt-4 text-sm text-gray-500">
-                Pages 1-3: Multi-page sorting • Pages 4+: Single-page sorting
-              </div>
             </div>
           </div>
         )}
