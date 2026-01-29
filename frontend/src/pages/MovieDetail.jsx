@@ -1,8 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import mediaService from '../services/media.service';
 import requestService from '../services/request.service';
+
+// Avatar component with fallback
+const AvatarWithFallback = ({ src, alt, className, isRound = false }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  if (imageError || !src) {
+    return (
+      <div className={`${className} bg-gray-600 flex items-center justify-center`}>
+        <svg className="w-1/2 h-1/2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={handleImageError}
+    />
+  );
+};
 
 const MovieDetail = () => {
   const { type, id } = useParams();
@@ -214,61 +242,4 @@ const MovieDetail = () => {
                   {mediaDetails.credits.cast.slice(0, 10).map((person) => (
                     <div key={person.id} className="text-center">
                       <div className="aspect-[3/4] mb-2">
-                        <img
-                          src={person.profile_path 
-                            ? `https://image.tmdb.org/t/p/w185${person.profile_path}` 
-                            : '/placeholder-person.png'}
-                          alt={person.name}
-                          className="w-full h-full object-cover rounded-md"
-                          onError={(e) => {
-                            e.target.src = '/placeholder-person.png';
-                          }}
-                        />
-                      </div>
-                      <h3 className="font-medium text-sm text-white truncate">{person.name}</h3>
-                      <p className="text-xs text-gray-400 truncate">{person.character}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Crew */}
-            {mediaDetails.credits && mediaDetails.credits.crew && (
-              <div className="bg-gray-800 rounded-lg shadow-md p-6 border border-gray-700">
-                <h2 className="text-xl font-semibold text-white mb-4">Crew</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {mediaDetails.credits.crew
-                    .filter(person => ['Director', 'Producer', 'Executive Producer', 'Screenplay', 'Writer'].includes(person.job))
-                    .slice(0, 9)
-                    .map((person, index) => (
-                      <div key={`${person.id}-${index}`} className="flex items-center space-x-3">
-                        <div className="flex-shrink-0">
-                          <img
-                            src={person.profile_path 
-                              ? `https://image.tmdb.org/t/p/w92${person.profile_path}` 
-                              : '/placeholder-person.png'}
-                            alt={person.name}
-                            className="w-12 h-12 object-cover rounded-full"
-                            onError={(e) => {
-                              e.target.src = '/placeholder-person.png';
-                            }}
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-sm text-white truncate">{person.name}</h3>
-                          <p className="text-xs text-gray-400 truncate">{person.job}</p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default MovieDetail;
+                        <AvatarWithFallback
