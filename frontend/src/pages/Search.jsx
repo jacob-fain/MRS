@@ -86,8 +86,9 @@ const Search = () => {
   const sortedAndPaginatedResults = useMemo(() => {
     if (!searchResults?.results) return searchResults;
 
-    // Sort all results by vote count
-    const sortedResults = [...searchResults.results].sort((a, b) => {
+    // Filter out results without posters, then sort by vote count
+    const filteredResults = searchResults.results.filter(media => media.poster_path);
+    const sortedResults = [...filteredResults].sort((a, b) => {
       const votesA = a.vote_count || 0;
       const votesB = b.vote_count || 0;
       return votesB - votesA;
