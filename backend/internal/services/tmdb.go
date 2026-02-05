@@ -196,6 +196,7 @@ type TMDBResult struct {
 	PosterPath   string   `json:"poster_path"`
 	BackdropPath string   `json:"backdrop_path"`
 	VoteAverage  float64  `json:"vote_average"`
+	VoteCount    int      `json:"vote_count"`
 	Popularity   float64  `json:"popularity"`
 	GenreIDs     []int    `json:"genre_ids"`
 	PosterURL    string   `json:"poster_url,omitempty"`   // Added by service

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { debounce } from 'lodash';
 import mediaService from '../services/media.service';
@@ -11,12 +11,11 @@ const Search = () => {
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
 
-  // Debounce search input
   const debouncedSearch = useCallback(
     debounce((query) => {
       setDebouncedQuery(query);
       setPage(1);
-    }, 500),
+    }, 300),
     []
   );
 
@@ -26,15 +25,107 @@ const Search = () => {
     debouncedSearch(query);
   };
 
-  // Search query
+  const clearSearch = () => {
+    setSearchQuery('');
+    setDebouncedQuery('');
+    setPage(1);
+  };
+
+  // Multi-page fetch for proper sorting of first few pages
+  const fetchMultiplePages = async (query, startPage, pageCount) => {
+    const promises = [];
+    for (let i = 0; i < pageCount; i++) {
+      promises.push(mediaService.searchMedia(query, startPage + i, true));
+    }
+    
+    const results = await Promise.all(promises);
+    
+    // Combine all results
+    const allResults = [];
+    let totalResults = 0;
+    let totalPages = 0;
+    
+    for (const result of results) {
+      if (result.results) {
+        allResults.push(...result.results);
+      }
+      if (result.total_results) {
+        totalResults = result.total_results;
+        totalPages = result.total_pages;
+      }
+    }
+    
+    return {
+      results: allResults,
+      total_results: totalResults,
+      total_pages: totalPages
+    };
+  };
+
+  // Determine if we need multi-page fetch (for first 3 pages)
+  const needsMultiPageFetch = page <= 3;
+
+  // Search query with multi-page logic
   const { data: searchResults, isLoading, error } = useQuery({
-    queryKey: ['search', debouncedQuery, page],
-    queryFn: () => mediaService.searchMedia(debouncedQuery, page, true),
+    queryKey: ['search', debouncedQuery, needsMultiPageFetch ? 'multi-page-1-3' : page],
+    queryFn: async () => {
+      if (needsMultiPageFetch) {
+        // Fetch first 3 pages for proper sorting
+        return await fetchMultiplePages(debouncedQuery, 1, 3);
+      } else {
+        // Normal single page fetch for page 4+
+        return await mediaService.searchMedia(debouncedQuery, page, true);
+      }
+    },
     enabled: debouncedQuery.length > 0,
     keepPreviousData: true,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Get user's existing requests
+  // Sort and paginate results
+  const sortedAndPaginatedResults = useMemo(() => {
+    if (!searchResults?.results) return searchResults;
+
+    // Sort all results by vote count
+    const sortedResults = [...searchResults.results].sort((a, b) => {
+      const votesA = a.vote_count || 0;
+      const votesB = b.vote_count || 0;
+      return votesB - votesA;
+    });
+
+    // Debug logging for Star Wars
+    if (debouncedQuery.toLowerCase().includes('star wars')) {
+      console.log('=== MULTI-PAGE VOTE COUNT SORTING ===');
+      console.log(`Sorted ${sortedResults.length} results from ${needsMultiPageFetch ? 'pages 1-3' : 'page ' + page}`);
+      sortedResults.slice(0, 10).forEach((item, index) => {
+        const votes = item.vote_count || 0;
+        const title = item.title || item.name;
+        console.log(`${(index + 1).toString().padStart(2)}. ${title} - ${votes.toLocaleString()} votes`);
+      });
+    }
+
+    if (needsMultiPageFetch) {
+      // For multi-page results, paginate the sorted results
+      const pageSize = 20;
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageResults = sortedResults.slice(startIndex, endIndex);
+      
+      return {
+        ...searchResults,
+        results: pageResults,
+        page: page,
+        total_pages: Math.ceil(sortedResults.length / pageSize)
+      };
+    } else {
+      // For single page results (page 4+), return as-is
+      return {
+        ...searchResults,
+        results: sortedResults
+      };
+    }
+  }, [searchResults, page, debouncedQuery, needsMultiPageFetch]);
+
   const { data: userRequests } = useQuery({
     queryKey: ['userRequests'],
     queryFn: () => requestService.getRequests(),
@@ -51,8 +142,6 @@ const Search = () => {
         overview: media.overview,
         poster_path: media.poster_path,
       });
-      
-      // Refetch user requests
       queryClient.invalidateQueries(['userRequests']);
     } catch (err) {
       console.error('Failed to create request:', err);
@@ -67,83 +156,104 @@ const Search = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Search Media</h1>
-        <p className="mt-2 text-gray-600">
-          Search for movies and TV shows to request
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Search Media</h1>
+          <p className="text-xl text-gray-600">Multi-page sorting: First 3 pages sorted by vote count</p>
+        </div>
 
-      <div className="relative">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          placeholder="Search for movies or TV shows..."
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search for movies, TV shows..."
+              className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            {searchQuery && (
+              <button onClick={clearSearch} className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                ✕
+              </button>
+            )}
+          </div>
+          
+          {sortedAndPaginatedResults?.results?.length > 0 && (
+            <div className="mt-4 text-center text-sm text-gray-600">
+              {needsMultiPageFetch 
+                ? `Pages 1-3: Sorted by vote count across all pages`
+                : `Page ${page}: Sorted within page`
+              }
+            </div>
+          )}
+        </div>
+
         {isLoading && (
-          <div className="absolute right-3 top-3">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <div className="text-center py-8">Loading...</div>
+        )}
+
+        {error && (
+          <div className="text-center py-8 text-red-600">Error: Failed to search</div>
+        )}
+
+        {sortedAndPaginatedResults && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {sortedAndPaginatedResults.results.map((media) => (
+                <MediaCard
+                  key={`${media.media_type}-${media.id}`}
+                  media={media}
+                  onRequest={() => handleRequest(media)}
+                  isRequested={isRequested(media)}
+                />
+              ))}
+            </div>
+
+            {sortedAndPaginatedResults.total_pages > 1 && (
+              <div className="flex justify-center space-x-2 mt-8">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 border rounded disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2">
+                  Page {page} of {sortedAndPaginatedResults.total_pages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(sortedAndPaginatedResults.total_pages, p + 1))}
+                  disabled={page === sortedAndPaginatedResults.total_pages}
+                  className="px-4 py-2 border rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {debouncedQuery && !isLoading && (!sortedAndPaginatedResults || sortedAndPaginatedResults.results.length === 0) && (
+          <div className="text-center py-12">
+            <p>No results found for "{debouncedQuery}"</p>
+          </div>
+        )}
+
+        {!debouncedQuery && (
+          <div className="text-center py-16">
+            <div className="max-w-lg mx-auto">
+              <h3 className="text-xl font-medium text-gray-900 mb-3">Search Movies & TV Shows</h3>
+              <p className="text-gray-600">
+                Smart pagination: First 3 pages are fetched and sorted together by vote count for optimal relevance.
+              </p>
+              <div className="mt-4 text-sm text-gray-500">
+                Pages 1-3: Multi-page sorting • Pages 4+: Single-page sorting
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-800">Failed to search. Please try again.</p>
-        </div>
-      )}
-
-      {searchResults && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {searchResults.results.map((media) => (
-              <MediaCard
-                key={`${media.media_type}-${media.id}`}
-                media={media}
-                onRequest={() => handleRequest(media)}
-                isRequested={isRequested(media)}
-              />
-            ))}
-          </div>
-
-          {searchResults.total_pages > 1 && (
-            <div className="flex justify-center space-x-2 mt-8">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="px-4 py-2 text-sm text-gray-700">
-                Page {page} of {searchResults.total_pages}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(searchResults.total_pages, p + 1))}
-                disabled={page === searchResults.total_pages}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {searchQuery === '' && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Start typing to search for movies and TV shows</p>
-        </div>
-      )}
-
-      {searchQuery !== '' && !isLoading && searchResults?.results.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No results found for "{debouncedQuery}"</p>
-        </div>
-      )}
     </div>
   );
 };
