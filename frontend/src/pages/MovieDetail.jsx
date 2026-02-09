@@ -4,10 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import mediaService from '../services/media.service';
 import requestService from '../services/request.service';
 
-// Avatar component with fallback
+// Avatar component with fallback for cast and crew photos
 const AvatarWithFallback = ({ src, alt, className, isRound = false }) => {
   const [imageError, setImageError] = useState(false);
-  
+
   const handleImageError = () => {
     setImageError(true);
   };
@@ -52,7 +52,7 @@ const MovieDetail = () => {
     try {
       await requestService.createRequest({
         title: mediaDetails.title || mediaDetails.name,
-        year: mediaDetails.release_date ? parseInt(mediaDetails.release_date.substring(0, 4)) : 
+        year: mediaDetails.release_date ? parseInt(mediaDetails.release_date.substring(0, 4)) :
               mediaDetails.first_air_date ? parseInt(mediaDetails.first_air_date.substring(0, 4)) : 0,
         media_type: type,
         tmdb_id: parseInt(id),
@@ -85,7 +85,7 @@ const MovieDetail = () => {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-white mb-2">Error loading details</h2>
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="text-blue-400 hover:text-blue-300"
           >
@@ -99,7 +99,7 @@ const MovieDetail = () => {
   const title = mediaDetails.title || mediaDetails.name;
   const releaseDate = mediaDetails.release_date || mediaDetails.first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
-  const posterUrl = mediaDetails.poster_url || (mediaDetails.poster_path 
+  const posterUrl = mediaDetails.poster_url || (mediaDetails.poster_path
     ? `https://image.tmdb.org/t/p/w500${mediaDetails.poster_path}`
     : '/placeholder-poster.png');
   const backdropUrl = mediaDetails.backdrop_path
@@ -111,13 +111,13 @@ const MovieDetail = () => {
       {/* Hero Section with Backdrop */}
       {backdropUrl && (
         <div className="relative h-96 overflow-hidden">
-          <img 
-            src={backdropUrl} 
+          <img
+            src={backdropUrl}
             alt={title}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black bg-opacity-60"></div>
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all"
           >
@@ -139,7 +139,7 @@ const MovieDetail = () => {
                   e.target.src = '/placeholder-poster.png';
                 }}
               />
-              
+
               <div className="p-6">
                 {mediaDetails.in_plex ? (
                   <button
@@ -225,7 +225,7 @@ const MovieDetail = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <h2 className="text-xl font-semibold text-white mb-3">Overview</h2>
                 <p className="text-gray-300 leading-relaxed">
@@ -243,3 +243,51 @@ const MovieDetail = () => {
                     <div key={person.id} className="text-center">
                       <div className="aspect-[3/4] mb-2">
                         <AvatarWithFallback
+                          src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null}
+                          alt={person.name}
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                      </div>
+                      <h3 className="font-medium text-sm text-white truncate">{person.name}</h3>
+                      <p className="text-xs text-gray-400 truncate">{person.character}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Crew */}
+            {mediaDetails.credits && mediaDetails.credits.crew && (
+              <div className="bg-gray-800 rounded-lg shadow-md p-6 border border-gray-700">
+                <h2 className="text-xl font-semibold text-white mb-4">Crew</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {mediaDetails.credits.crew
+                    .filter(person => ['Director', 'Producer', 'Executive Producer', 'Screenplay', 'Writer'].includes(person.job))
+                    .slice(0, 9)
+                    .map((person, index) => (
+                      <div key={`${person.id}-${index}`} className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <AvatarWithFallback
+                            src={person.profile_path ? `https://image.tmdb.org/t/p/w92${person.profile_path}` : null}
+                            alt={person.name}
+                            className="w-12 h-12 object-cover rounded-full"
+                            isRound={true}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-sm text-white truncate">{person.name}</h3>
+                          <p className="text-xs text-gray-400 truncate">{person.job}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MovieDetail;
