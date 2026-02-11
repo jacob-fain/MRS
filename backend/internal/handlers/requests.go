@@ -242,7 +242,9 @@ func (h *requestHandler) CreateRequest(c *gin.Context) {
 
 	// Log audit entry
 	if h.auditService != nil {
-		h.auditService.LogRequestCreated(request.ID, request.UserID)
+		if err := h.auditService.LogRequestCreated(request.ID, request.UserID); err != nil {
+			log.Printf("Failed to log audit entry for request creation (ID: %d): %v", request.ID, err)
+		}
 	}
 
 	// Load user for response
@@ -362,14 +364,20 @@ func (h *requestHandler) UpdateRequest(c *gin.Context) {
 		}
 
 		if statusChanged {
-			h.auditService.LogRequestStatusChange(request.ID, auditUserID, oldStatus, input.Status)
+			if err := h.auditService.LogRequestStatusChange(request.ID, auditUserID, oldStatus, input.Status); err != nil {
+				log.Printf("Failed to log status change audit for request %d: %v", request.ID, err)
+			}
 		}
 		if adminNotesChanged {
-			h.auditService.LogRequestNotesUpdate(request.ID, auditUserID, "Admin notes")
+			if err := h.auditService.LogRequestNotesUpdate(request.ID, auditUserID, "Admin notes"); err != nil {
+				log.Printf("Failed to log admin notes update audit for request %d: %v", request.ID, err)
+			}
 		}
 		if notesChanged {
 			uid := userID.(uint)
-			h.auditService.LogRequestNotesUpdate(request.ID, &uid, "User notes")
+			if err := h.auditService.LogRequestNotesUpdate(request.ID, &uid, "User notes"); err != nil {
+				log.Printf("Failed to log user notes update audit for request %d: %v", request.ID, err)
+			}
 		}
 	}
 
@@ -432,7 +440,9 @@ func (h *requestHandler) DeleteRequest(c *gin.Context) {
 
 	// Log audit entry before deleting
 	if h.auditService != nil {
-		h.auditService.LogRequestDeleted(request.ID, userID.(uint), request.Title)
+		if err := h.auditService.LogRequestDeleted(request.ID, userID.(uint), request.Title); err != nil {
+			log.Printf("Failed to log audit entry for request deletion (ID: %d): %v", request.ID, err)
+		}
 	}
 
 	// Delete request

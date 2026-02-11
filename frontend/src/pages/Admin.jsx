@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import requestService from '../services/request.service';
 import userService from '../services/user.service';
@@ -90,6 +90,11 @@ const Admin = () => {
   const clearSelection = () => {
     setSelectedRequests(new Set());
   };
+
+  // Clear selection when filters or sort changes to avoid hidden selections
+  useEffect(() => {
+    clearSelection();
+  }, [selectedStatus, searchQuery, sortBy, sortOrder]);
 
   // Bulk action handlers
   const handleBulkAction = async (action) => {
@@ -391,6 +396,7 @@ const Admin = () => {
           onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
           className="px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors"
           title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+          aria-label={sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {sortOrder === 'asc' ? (

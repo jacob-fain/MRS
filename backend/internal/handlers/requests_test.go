@@ -17,7 +17,7 @@ func TestRequestHandler_GetRequests(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db, nil) // plexService not needed for basic tests
+	handler := NewRequestHandler(db, nil, nil) // plexService and auditService not needed for basic tests
 
 	// Create test users
 	user1 := testutil.CreateTestUser(t, db, "user1@example.com", "user1", "pass", false)
@@ -116,7 +116,7 @@ func TestRequestHandler_CreateRequest(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db, nil)
+	handler := NewRequestHandler(db, nil, nil)
 
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
 
@@ -228,7 +228,7 @@ func TestRequestHandler_UpdateRequest(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db, nil)
+	handler := NewRequestHandler(db, nil, nil)
 
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
 	admin := testutil.CreateTestUser(t, db, "admin@example.com", "admin", "pass", true)
@@ -358,7 +358,7 @@ func TestRequestHandler_DeleteRequest(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db, nil)
+	handler := NewRequestHandler(db, nil, nil)
 
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
 	admin := testutil.CreateTestUser(t, db, "admin@example.com", "admin", "pass", true)
@@ -482,7 +482,7 @@ func TestRequestHandler_GetRequestStats(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db, nil)
+	handler := NewRequestHandler(db, nil, nil)
 
 	// Create test data
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
@@ -556,6 +556,88 @@ func TestRequestHandler_GetRequestStats(t *testing.T) {
 			testutil.AssertNoError(t, err)
 
 			if tt.checkResponse != nil {
+				tt.checkResponse(t, response)
+			}
+		})
+	}
+}
+func TestRequestHandler_GetRequestAuditLogs(t *testing.T) {
+	// Setup
+	gin.SetMode(gin.TestMode)
+	db := testutil.SetupTestDB(t)
+	handler := NewRequestHandler(db, nil, nil)
+
+	// Create test users
+	admin := testutil.CreateTestUser(t, db, "admin@example.com", "admin", "pass", true)
+	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
+
+	// Create test request
+	req := testutil.CreateTestRequest(t, db, user.ID, "The Matrix", models.MediaTypeMovie)
+
+	tests := []struct {
+		name           string
+		requestID      string
+		userID         uint
+		isAdmin        bool
+		expectedStatus int
+		checkResponse  func(t *testing.T, response map[string]interface{})
+	}{
+		{
+			name:           "admin can access audit logs",
+			requestID:      fmt.Sprintf("%d", req.ID),
+			userID:         admin.ID,
+			isAdmin:        true,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				logs, ok := response["logs"]
+				testutil.AssertTrue(t, ok, "response should contain logs")
+				testutil.AssertNotNil(t, logs)
+			},
+		},
+		{
+			name:           "non-admin forbidden",
+			requestID:      fmt.Sprintf("%d", req.ID),
+			userID:         user.ID,
+			isAdmin:        false,
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "invalid request ID",
+			requestID:      "invalid",
+			userID:         admin.ID,
+			isAdmin:        true,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "non-existent request",
+			requestID:      "9999",
+			userID:         admin.ID,
+			isAdmin:        true,
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			router := gin.New()
+			router.GET("/requests/:id/audit-logs", func(c *gin.Context) {
+				c.Set("userID", tt.userID)
+				c.Set("isAdmin", tt.isAdmin)
+				handler.GetRequestAuditLogs(c)
+			})
+
+			req, err := http.NewRequest("GET", "/requests/"+tt.requestID+"/audit-logs", nil)
+			testutil.AssertNoError(t, err)
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			testutil.AssertEqual(t, tt.expectedStatus, w.Code)
+
+			if tt.checkResponse != nil {
+				var response map[string]interface{}
+				err = json.Unmarshal(w.Body.Bytes(), &response)
+				testutil.AssertNoError(t, err)
 				tt.checkResponse(t, response)
 			}
 		})

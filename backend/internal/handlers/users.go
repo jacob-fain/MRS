@@ -258,18 +258,24 @@ func (h *userHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	// Delete user's requests first (cascade delete)
-	if err := h.db.Where("user_id = ?", userID).Delete(&models.Request{}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to delete user's requests",
-		})
-		return
-	}
+	// Delete user and their requests in a transaction for atomicity
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		// Delete user's requests first (cascade delete)
+		if err := tx.Where("user_id = ?", userID).Delete(&models.Request{}).Error; err != nil {
+			return err
+		}
 
-	// Delete user
-	if err := h.db.Delete(&user).Error; err != nil {
+		// Delete user
+		if err := tx.Delete(&user).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to delete user",
+			"error": "Failed to delete user and associated data",
 		})
 		return
 	}
