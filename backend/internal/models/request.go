@@ -9,10 +9,11 @@ import (
 type RequestStatus string
 
 const (
-	StatusPending   RequestStatus = "pending"
-	StatusApproved  RequestStatus = "approved"
-	StatusCompleted RequestStatus = "completed"
-	StatusRejected  RequestStatus = "rejected"
+	StatusPending    RequestStatus = "pending"
+	StatusApproved   RequestStatus = "approved"
+	StatusDownloaded RequestStatus = "downloaded"
+	StatusCompleted  RequestStatus = "completed"
+	StatusRejected   RequestStatus = "rejected"
 )
 
 type MediaType string
