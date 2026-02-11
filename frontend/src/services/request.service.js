@@ -25,6 +25,11 @@ class RequestService {
     const response = await api.get('/requests/stats');
     return response.data;
   }
+
+  async getRequestAuditLogs(id) {
+    const response = await api.get(`/requests/${id}/audit-logs`);
+    return response.data;
+  }
 }
 
 export default new RequestService();

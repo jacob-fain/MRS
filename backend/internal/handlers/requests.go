@@ -13,15 +13,17 @@ import (
 )
 
 type requestHandler struct {
-	db          *gorm.DB
-	plexService services.PlexServiceInterface
+	db           *gorm.DB
+	plexService  services.PlexServiceInterface
+	auditService *services.AuditService
 }
 
 // NewRequestHandler creates a new request handler
-func NewRequestHandler(db *gorm.DB, plexService services.PlexServiceInterface) *requestHandler {
+func NewRequestHandler(db *gorm.DB, plexService services.PlexServiceInterface, auditService *services.AuditService) *requestHandler {
 	return &requestHandler{
-		db:          db,
-		plexService: plexService,
+		db:           db,
+		plexService:  plexService,
+		auditService: auditService,
 	}
 }
 
@@ -238,6 +240,13 @@ func (h *requestHandler) CreateRequest(c *gin.Context) {
 		return
 	}
 
+	// Log audit entry
+	if h.auditService != nil {
+		if err := h.auditService.LogRequestCreated(request.ID, request.UserID); err != nil {
+			log.Printf("Failed to log audit entry for request creation (ID: %d): %v", request.ID, err)
+		}
+	}
+
 	// Load user for response
 	h.db.Preload("User").First(&request, request.ID)
 
@@ -304,22 +313,31 @@ func (h *requestHandler) UpdateRequest(c *gin.Context) {
 		return
 	}
 
+	// Track old values for audit logging
+	oldStatus := request.Status
+
 	// Apply updates based on permissions
 	updates := make(map[string]interface{})
-	
+	statusChanged := false
+	notesChanged := false
+	adminNotesChanged := false
+
 	if isAdmin.(bool) {
 		// Admins can update everything
-		if input.Status != "" {
+		if input.Status != "" && input.Status != oldStatus {
 			updates["status"] = input.Status
+			statusChanged = true
 		}
 		if input.AdminNotes != "" {
 			updates["admin_notes"] = input.AdminNotes
+			adminNotesChanged = true
 		}
 	}
-	
+
 	// Users can update their own notes
 	if request.UserID == userID.(uint) && input.Notes != "" {
 		updates["notes"] = input.Notes
+		notesChanged = true
 	}
 
 	if len(updates) == 0 {
@@ -335,6 +353,32 @@ func (h *requestHandler) UpdateRequest(c *gin.Context) {
 			"error": "Failed to update request",
 		})
 		return
+	}
+
+	// Log audit entries
+	if h.auditService != nil {
+		var auditUserID *uint
+		if isAdmin.(bool) {
+			uid := userID.(uint)
+			auditUserID = &uid
+		}
+
+		if statusChanged {
+			if err := h.auditService.LogRequestStatusChange(request.ID, auditUserID, oldStatus, input.Status); err != nil {
+				log.Printf("Failed to log status change audit for request %d: %v", request.ID, err)
+			}
+		}
+		if adminNotesChanged {
+			if err := h.auditService.LogRequestNotesUpdate(request.ID, auditUserID, "Admin notes"); err != nil {
+				log.Printf("Failed to log admin notes update audit for request %d: %v", request.ID, err)
+			}
+		}
+		if notesChanged {
+			uid := userID.(uint)
+			if err := h.auditService.LogRequestNotesUpdate(request.ID, &uid, "User notes"); err != nil {
+				log.Printf("Failed to log user notes update audit for request %d: %v", request.ID, err)
+			}
+		}
 	}
 
 	// Load user for response
@@ -394,6 +438,13 @@ func (h *requestHandler) DeleteRequest(c *gin.Context) {
 		return
 	}
 
+	// Log audit entry before deleting
+	if h.auditService != nil {
+		if err := h.auditService.LogRequestDeleted(request.ID, userID.(uint), request.Title); err != nil {
+			log.Printf("Failed to log audit entry for request deletion (ID: %d): %v", request.ID, err)
+		}
+	}
+
 	// Delete request
 	if err := h.db.Delete(&request).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -404,6 +455,116 @@ func (h *requestHandler) DeleteRequest(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Request deleted successfully",
+	})
+}
+
+// GetRequestAuditLogs returns audit logs for a specific request
+// @Summary Get request audit logs
+// @Description Get audit log history for a specific request (admin only)
+// @Tags requests
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Request ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /requests/{id}/audit-logs [get]
+func (h *requestHandler) GetRequestAuditLogs(c *gin.Context) {
+	// Check if user is admin
+	isAdmin, _ := c.Get("isAdmin")
+	if !isAdmin.(bool) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Admin privileges required",
+		})
+		return
+	}
+
+	// Get request ID
+	requestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request ID",
+		})
+		return
+	}
+
+	// Check if request exists
+	var request models.Request
+	if err := h.db.First(&request, requestID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Request not found",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to find request",
+			})
+		}
+		return
+	}
+
+	// Get audit logs
+	if h.auditService == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"logs":  []interface{}{},
+			"count": 0,
+		})
+		return
+	}
+
+	logs, err := h.auditService.GetRequestAuditLogs(uint(requestID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch audit logs",
+		})
+		return
+	}
+
+	// Convert to response format
+	type AuditLogResponse struct {
+		ID        uint        `json:"id"`
+		RequestID uint        `json:"request_id"`
+		User      interface{} `json:"user"`
+		Action    string      `json:"action"`
+		OldValue  string      `json:"old_value,omitempty"`
+		NewValue  string      `json:"new_value,omitempty"`
+		Notes     string      `json:"notes"`
+		CreatedAt string      `json:"created_at"`
+	}
+
+	responses := make([]AuditLogResponse, len(logs))
+	for i, log := range logs {
+		var user interface{}
+		if log.User != nil {
+			user = map[string]interface{}{
+				"id":       log.User.ID,
+				"username": log.User.Username,
+			}
+		} else {
+			user = map[string]interface{}{
+				"id":       nil,
+				"username": "System",
+			}
+		}
+
+		responses[i] = AuditLogResponse{
+			ID:        log.ID,
+			RequestID: log.RequestID,
+			User:      user,
+			Action:    string(log.Action),
+			OldValue:  log.OldValue,
+			NewValue:  log.NewValue,
+			Notes:     log.Notes,
+			CreatedAt: log.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"logs":  responses,
+		"count": len(responses),
 	})
 }
 

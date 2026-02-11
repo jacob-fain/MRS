@@ -10,5 +10,6 @@ func Migrate(db *gorm.DB) error {
 		&models.User{},
 		&models.Request{},
 		&models.Rating{},
+		&models.AuditLog{},
 	)
 }
