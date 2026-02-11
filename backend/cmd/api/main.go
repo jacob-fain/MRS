@@ -45,6 +45,13 @@ func main() {
 		log.Printf("Plex features will be disabled")
 	}
 
+	// Initialize OMDB service
+	omdbService, err := services.NewOMDBService()
+	if err != nil {
+		log.Printf("Warning: OMDB service initialization failed: %v", err)
+		log.Printf("Rating features will be disabled")
+	}
+
 	router := gin.Default()
 	
 	router.Use(middleware.CORS())
@@ -75,7 +82,7 @@ func main() {
 			protected.GET("/requests/stats", middleware.AdminRequired(authService), requestHandler.GetRequestStats)
 			
 			// Search endpoints
-			searchHandler := handlers.NewSearchHandler(tmdbService, plexService)
+			searchHandler := handlers.NewSearchHandler(tmdbService, plexService, omdbService, db)
 			protected.GET("/search", searchHandler.SearchMedia)
 			protected.GET("/search/:type/:id", searchHandler.GetMediaDetails)
 			
