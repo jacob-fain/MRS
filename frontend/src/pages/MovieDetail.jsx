@@ -110,7 +110,7 @@ const MovieDetail = () => {
     <div className="min-h-screen bg-gray-900">
       {/* Hero Section with Backdrop */}
       {backdropUrl && (
-        <div className="relative h-96 overflow-hidden">
+        <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden">
           <img
             src={backdropUrl}
             alt={title}
@@ -119,18 +119,32 @@ const MovieDetail = () => {
           <div className="absolute inset-0 bg-black bg-opacity-60"></div>
           <button
             onClick={() => navigate(-1)}
-            className="absolute top-4 left-4 bg-gray-900/80 backdrop-blur-sm text-white px-6 py-3 rounded-lg hover:bg-gray-900/95 transition-all flex items-center space-x-2 font-semibold shadow-lg border border-gray-700"
+            className="absolute top-4 left-4 bg-gray-900/80 backdrop-blur-sm text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-gray-900/95 transition-all flex items-center space-x-2 font-semibold shadow-lg border border-gray-700 min-h-[44px]"
+            aria-label="Go back"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="hidden sm:inline">Back</span>
+          </button>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Show back button if no backdrop */}
+        {!backdropUrl && (
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 bg-gray-800 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-gray-700 transition-all flex items-center space-x-2 font-semibold border border-gray-700 min-h-[44px]"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             <span>Back</span>
           </button>
-        </div>
-      )}
+        )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Poster and Actions */}
           <div className="lg:col-span-1">
             <div className="bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-700">
@@ -143,25 +157,25 @@ const MovieDetail = () => {
                 }}
               />
 
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {mediaDetails.in_plex ? (
                   <button
                     disabled
-                    className="w-full py-3 px-4 bg-gray-600 text-gray-400 rounded-md font-medium cursor-not-allowed"
+                    className="w-full py-3 px-4 bg-gray-600 text-gray-400 rounded-md font-medium cursor-not-allowed min-h-[44px]"
                   >
                     Already in Plex
                   </button>
                 ) : isRequested() ? (
                   <button
                     disabled
-                    className="w-full py-3 px-4 bg-gray-600 text-gray-400 rounded-md font-medium cursor-not-allowed"
+                    className="w-full py-3 px-4 bg-gray-600 text-gray-400 rounded-md font-medium cursor-not-allowed min-h-[44px]"
                   >
                     Already Requested
                   </button>
                 ) : (
                   <button
                     onClick={handleRequest}
-                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors min-h-[44px]"
                   >
                     Request {type === 'movie' ? 'Movie' : 'TV Show'}
                   </button>
@@ -170,8 +184,8 @@ const MovieDetail = () => {
             </div>
 
             {/* Additional Info Card */}
-            <div className="bg-gray-800 rounded-lg shadow-md p-6 mt-6 border border-gray-700">
-              <h3 className="font-semibold text-white mb-4">Details</h3>
+            <div className="bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 mt-6 border border-gray-700">
+              <h3 className="font-semibold text-white mb-4 text-lg">Details</h3>
               <dl className="space-y-3">
                 <div>
                   <dt className="text-sm font-medium text-gray-400">Release Date</dt>

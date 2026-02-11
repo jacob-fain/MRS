@@ -66,20 +66,20 @@ const Requests = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-0">
       <div>
-        <h1 className="text-3xl font-bold text-white">My Requests</h1>
-        <p className="mt-2 text-gray-300">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">My Requests</h1>
+        <p className="mt-2 text-sm sm:text-base text-gray-300">
           Track the status of your media requests
         </p>
       </div>
 
-      <div className="flex space-x-2 overflow-x-auto pb-2">
+      <div className="flex space-x-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
         {statusFilters.map((statusFilter) => (
           <button
             key={statusFilter.value}
             onClick={() => setFilter(statusFilter.value)}
-            className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-4 py-2.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors min-h-[44px] ${
               filter === statusFilter.value
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-200 border border-gray-600 hover:bg-gray-600'

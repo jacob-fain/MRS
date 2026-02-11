@@ -301,11 +301,11 @@ const Search = () => {
 
           {/* Pagination */}
           {sortedAndPaginatedResults && sortedAndPaginatedResults.total_pages > 1 && !error && (
-            <div className="flex items-center justify-center space-x-4 mt-12 mb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12 mb-8">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="flex items-center space-x-2 px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex items-center justify-center space-x-2 min-w-[120px] px-4 sm:px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px]"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -313,8 +313,8 @@ const Search = () => {
                 <span>Previous</span>
               </button>
 
+              {/* Page Numbers */}
               <div className="flex items-center space-x-2">
-                {/* Page Numbers */}
                 {Array.from(
                   { length: Math.min(5, sortedAndPaginatedResults.total_pages) },
                   (_, i) => {
@@ -324,7 +324,7 @@ const Search = () => {
                       <button
                         key={pageNum}
                         onClick={() => setPage(pageNum)}
-                        className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
+                        className={`min-w-[44px] min-h-[44px] w-11 h-11 rounded-lg text-sm font-medium transition-all ${
                           pageNum === page
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700'
@@ -340,7 +340,7 @@ const Search = () => {
               <button
                 onClick={() => setPage(p => Math.min(sortedAndPaginatedResults.total_pages, p + 1))}
                 disabled={page === sortedAndPaginatedResults.total_pages}
-                className="flex items-center space-x-2 px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex items-center justify-center space-x-2 min-w-[120px] px-4 sm:px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px]"
               >
                 <span>Next</span>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

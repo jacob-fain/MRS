@@ -109,26 +109,26 @@ const Admin = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+            <svg className="w-7 h-7 sm:w-8 sm:h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
             Admin Dashboard
           </h1>
-          <p className="mt-2 text-gray-300">
+          <p className="mt-2 text-sm sm:text-base text-gray-300">
             Review and manage all media requests
           </p>
         </div>
 
         {/* View Mode Toggle */}
-        <div className="flex gap-2 bg-gray-800 p-1 rounded-lg border border-gray-700">
+        <div className="flex gap-2 bg-gray-800 p-1 rounded-lg border border-gray-700 w-full sm:w-auto">
           <button
             onClick={() => setViewMode('cards')}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
               viewMode === 'cards'
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-400 hover:text-white'
@@ -138,7 +138,7 @@ const Admin = () => {
           </button>
           <button
             onClick={() => setViewMode('compact')}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
               viewMode === 'compact'
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-400 hover:text-white'
