@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -6,6 +6,8 @@ const Layout = ({ children }) => {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isBrowseOpen, setIsBrowseOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -15,6 +17,34 @@ const Layout = ({ children }) => {
   const isActive = (path) => {
     return location.pathname === path;
   };
+
+  const isBrowseActive = () => {
+    return ['/popular', '/top-rated', '/upcoming'].some(path =>
+      location.pathname.startsWith(path)
+    );
+  };
+
+  // Close dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsBrowseOpen(false);
+      }
+    };
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' && isBrowseOpen) {
+        setIsBrowseOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isBrowseOpen]);
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -48,6 +78,58 @@ const Layout = ({ children }) => {
                   >
                     Cast Search
                   </Link>
+
+                  {/* Browse Dropdown */}
+                  <div className="relative inline-flex items-center" ref={dropdownRef}>
+                    <button
+                      onClick={() => setIsBrowseOpen(!isBrowseOpen)}
+                      aria-haspopup="true"
+                      aria-expanded={isBrowseOpen}
+                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium h-16 ${
+                        isBrowseActive()
+                          ? 'border-blue-400 text-white'
+                          : 'border-transparent text-gray-300 hover:border-gray-500 hover:text-white'
+                      }`}
+                    >
+                      Browse
+                    </button>
+
+                    {isBrowseOpen && (
+                      <div
+                        className="absolute z-10 left-0 top-full mt-0 w-48 rounded-md shadow-lg bg-gray-800 border border-gray-700"
+                        role="menu"
+                        aria-orientation="vertical"
+                      >
+                        <div className="py-1">
+                          <Link
+                            to="/popular"
+                            onClick={() => setIsBrowseOpen(false)}
+                            className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                            role="menuitem"
+                          >
+                            Popular
+                          </Link>
+                          <Link
+                            to="/top-rated"
+                            onClick={() => setIsBrowseOpen(false)}
+                            className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                            role="menuitem"
+                          >
+                            Top Rated
+                          </Link>
+                          <Link
+                            to="/upcoming"
+                            onClick={() => setIsBrowseOpen(false)}
+                            className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                            role="menuitem"
+                          >
+                            Upcoming
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <Link
                     to="/requests"
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const MediaCard = ({ media, onRequest, isRequested }) => {
+const MediaCard = ({ media, onRequest, isRequested, showReleaseDate = false }) => {
   const navigate = useNavigate();
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -13,6 +13,25 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
   const posterUrl = media.poster_path
     ? `https://image.tmdb.org/t/p/w342${media.poster_path}`
     : null;
+
+  // Format release date for display (e.g., "Feb 15, 2026")
+  const formatReleaseDate = (dateString) => {
+    if (!dateString) return null;
+    try {
+      // Parse YYYY-MM-DD as local date to avoid timezone issues
+      const [year, month, day] = dateString.split('-').map(Number);
+      if (!year || !month || !day) return null;
+
+      const date = new Date(year, month - 1, day); // month is 0-indexed
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return null;
+    }
+  };
 
   // Safe rating handling
   const formatRating = (rating) => {
@@ -156,8 +175,12 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
 
         {/* Metadata Row */}
         <div className="flex items-center gap-2 mb-3 text-sm">
-          <span className="font-medium text-gray-400">{year || 'TBA'}</span>
-          <span className="text-gray-400">•</span>
+          {!showReleaseDate && (
+            <>
+              <span className="font-medium text-gray-400">{year || 'TBA'}</span>
+              <span className="text-gray-400">•</span>
+            </>
+          )}
           <span className="capitalize text-gray-400">
             {media.media_type === 'movie' ? 'Movie' : 'TV Show'}
           </span>
@@ -172,20 +195,34 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
           </div>
         </div>
 
-        {/* Genres - Only show if available */}
-        {formatGenres(media.genre_ids).length > 0 && (
+        {/* Release Date or Genres */}
+        {showReleaseDate ? (
           <div className="mb-3">
-            <div className="flex flex-wrap gap-1">
-              {formatGenres(media.genre_ids).map((genre, index) => (
-                <span
-                  key={index}
-                  className="inline-block bg-gray-700 text-gray-300 px-2 py-1 rounded-md text-xs font-medium"
-                >
-                  {genre}
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-blue-400 font-semibold text-sm">
+                {formatReleaseDate(releaseDate) || 'TBA'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* Genres - Only show if available and not showing release date */
+          formatGenres(media.genre_ids).length > 0 && (
+            <div className="mb-3">
+              <div className="flex flex-wrap gap-1">
+                {formatGenres(media.genre_ids).map((genre, index) => (
+                  <span
+                    key={index}
+                    className="inline-block bg-gray-700 text-gray-300 px-2 py-1 rounded-md text-xs font-medium"
+                  >
+                    {genre}
                 </span>
               ))}
             </div>
           </div>
+          )
         )}
 
         {/* Overview - Fixed height to prevent layout shift */}

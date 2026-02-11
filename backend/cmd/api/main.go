@@ -92,6 +92,16 @@ func main() {
 			protected.GET("/person/:id", personHandler.GetPersonDetails)
 			protected.GET("/person/:id/credits", personHandler.GetPersonCredits)
 
+			// Discover endpoints
+			discoverHandler := handlers.NewDiscoverHandler(tmdbService, plexService)
+			protected.GET("/discover/trending", discoverHandler.GetTrending)
+			protected.GET("/discover/popular/movies", discoverHandler.GetPopularMovies)
+			protected.GET("/discover/popular/tv", discoverHandler.GetPopularTV)
+			protected.GET("/discover/top-rated/movies", discoverHandler.GetTopRatedMovies)
+			protected.GET("/discover/top-rated/tv", discoverHandler.GetTopRatedTV)
+			protected.GET("/discover/upcoming/movies", discoverHandler.GetUpcomingMovies)
+			protected.GET("/discover/upcoming/tv", discoverHandler.GetUpcomingTV)
+
 			// Plex endpoints (only if service is available)
 			if plexService != nil {
 				plexHandler := handlers.NewPlexHandler(plexService)
