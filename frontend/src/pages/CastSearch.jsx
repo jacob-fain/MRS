@@ -118,7 +118,7 @@ const CastSearch = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white">Cast & Crew Search</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Cast & Crew Search</h1>
         </div>
 
         {/* Search Bar */}
@@ -261,11 +261,11 @@ const CastSearch = () => {
 
           {/* Pagination */}
           {totalPages > 1 && !error && (
-            <div className="flex items-center justify-center space-x-4 mt-12">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="flex items-center space-x-2 px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex items-center justify-center space-x-2 min-w-[120px] px-4 sm:px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px]"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -273,14 +273,14 @@ const CastSearch = () => {
                 <span>Previous</span>
               </button>
 
-              <span className="text-gray-300">
+              <span className="text-gray-300 font-medium min-h-[44px] flex items-center">
                 Page {page} of {totalPages}
               </span>
 
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="flex items-center space-x-2 px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex items-center justify-center space-x-2 min-w-[120px] px-4 sm:px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px]"
               >
                 <span>Next</span>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
