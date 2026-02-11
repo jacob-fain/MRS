@@ -31,23 +31,23 @@ const Home = () => {
 
   if (!user) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-4xl font-bold text-white mb-4">
+      <div className="text-center py-12 px-4">
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
           Welcome to MRS
         </h1>
-        <p className="text-xl text-gray-300 mb-8">
+        <p className="text-lg sm:text-xl text-gray-300 mb-8">
           Request movies and TV shows for your Plex Media Server
         </p>
-        <div className="space-x-4">
+        <div className="flex flex-col sm:flex-row gap-4 sm:space-x-4 justify-center items-center">
           <Link
             to="/login"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors min-h-[44px]"
           >
             Sign In
           </Link>
           <Link
             to="/register"
-            className="inline-flex items-center px-6 py-3 border border-gray-600 text-base font-medium rounded-md text-gray-200 bg-gray-700 hover:bg-gray-600 transition-colors"
+            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 border border-gray-600 text-base font-medium rounded-md text-gray-200 bg-gray-700 hover:bg-gray-600 transition-colors min-h-[44px]"
           >
             Create Account
           </Link>
@@ -57,17 +57,17 @@ const Home = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 sm:px-0">
       <div>
-        <h1 className="text-3xl font-bold text-white">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">
           Welcome back, {user.username}!
         </h1>
-        <p className="mt-2 text-gray-300">
+        <p className="mt-2 text-sm sm:text-base text-gray-300">
           What would you like to watch today?
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Link
           to="/search"
           className="bg-gray-800 overflow-hidden shadow rounded-lg hover:shadow-xl transition-all border border-gray-700 hover:border-gray-600"
@@ -150,7 +150,7 @@ const Home = () => {
           <div className="bg-gray-700 px-4 py-3 sm:px-6 border-t border-gray-600">
             <Link
               to="/requests"
-              className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="block text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors min-h-[44px] flex items-center"
             >
               View all requests →
             </Link>
