@@ -1,11 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import requestService from '../services/request.service';
+import userService from '../services/user.service';
 
 const Admin = () => {
+  const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'users'
   const [selectedStatus, setSelectedStatus] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'compact'
+  const [selectedRequests, setSelectedRequests] = useState(new Set());
+  const [sortBy, setSortBy] = useState('date'); // 'date', 'user', 'title', 'type'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
   const queryClient = useQueryClient();
 
   // Fetch all requests (server-side filtering by status)
@@ -21,6 +26,13 @@ const Admin = () => {
   const { data: statsData } = useQuery({
     queryKey: ['requestStats'],
     queryFn: () => requestService.getRequestStats(),
+  });
+
+  // Fetch users (only when on users tab)
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: () => userService.getUsers(),
+    enabled: activeTab === 'users',
   });
 
   // Update request mutation
@@ -54,7 +66,99 @@ const Admin = () => {
     });
   };
 
-  // Filter and search requests (client-side search only, status is server-side)
+  // Bulk selection handlers
+  const toggleSelectRequest = (requestId) => {
+    setSelectedRequests(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(requestId)) {
+        newSet.delete(requestId);
+      } else {
+        newSet.add(requestId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRequests.size === filteredRequests.length) {
+      setSelectedRequests(new Set());
+    } else {
+      setSelectedRequests(new Set(filteredRequests.map(r => r.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedRequests(new Set());
+  };
+
+  // Bulk action handlers
+  const handleBulkAction = async (action) => {
+    const actionLabels = {
+      approve: 'approve',
+      reject: 'reject',
+      complete: 'mark as completed',
+      delete: 'delete'
+    };
+
+    if (!window.confirm(`Are you sure you want to ${actionLabels[action]} ${selectedRequests.size} request(s)?`)) {
+      return;
+    }
+
+    const statusMap = {
+      approve: 'approved',
+      reject: 'rejected',
+      complete: 'completed'
+    };
+
+    // Execute bulk operations
+    const promises = Array.from(selectedRequests).map(requestId => {
+      if (action === 'delete') {
+        return requestService.deleteRequest(requestId);
+      } else {
+        return requestService.updateRequest(requestId, { status: statusMap[action] });
+      }
+    });
+
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries(['adminRequests']);
+      queryClient.invalidateQueries(['requestStats']);
+      clearSelection();
+    } catch (error) {
+      alert(`Failed to ${actionLabels[action]} some requests. Please try again.`);
+    }
+  };
+
+  // User management handlers
+  const handleToggleAdmin = async (userId, currentIsAdmin) => {
+    if (!window.confirm(`Are you sure you want to ${currentIsAdmin ? 'remove admin privileges from' : 'grant admin privileges to'} this user?`)) {
+      return;
+    }
+
+    try {
+      await userService.updateUser(userId, { is_admin: !currentIsAdmin });
+      queryClient.invalidateQueries(['adminUsers']);
+    } catch (error) {
+      alert('Failed to update user. Please try again.');
+    }
+  };
+
+  const handleDeleteUser = async (userId, username) => {
+    if (!window.confirm(`Are you sure you want to delete user "${username}"? This will also delete all their requests. This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await userService.deleteUser(userId);
+      queryClient.invalidateQueries(['adminUsers']);
+      queryClient.invalidateQueries(['adminRequests']);
+      queryClient.invalidateQueries(['requestStats']);
+    } catch (error) {
+      alert('Failed to delete user. Please try again.');
+    }
+  };
+
+  // Filter, search, and sort requests (client-side search only, status is server-side)
   const filteredRequests = useMemo(() => {
     if (!requestsData?.requests) return [];
 
@@ -70,8 +174,34 @@ const Admin = () => {
       );
     }
 
+    // Sort requests
+    filtered = [...filtered].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'date':
+          comparison = new Date(a.created_at) - new Date(b.created_at);
+          break;
+        case 'user':
+          const userA = a.user?.username || '';
+          const userB = b.user?.username || '';
+          comparison = userA.localeCompare(userB);
+          break;
+        case 'title':
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case 'type':
+          comparison = a.media_type.localeCompare(b.media_type);
+          break;
+        default:
+          break;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
     return filtered;
-  }, [requestsData, searchQuery]);
+  }, [requestsData, searchQuery, sortBy, sortOrder]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -120,37 +250,88 @@ const Admin = () => {
             Admin Dashboard
           </h1>
           <p className="mt-2 text-sm sm:text-base text-gray-300">
-            Review and manage all media requests
+            {activeTab === 'requests' ? 'Review and manage all media requests' : 'Manage users and permissions'}
           </p>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex gap-2 bg-gray-800 p-1 rounded-lg border border-gray-700 w-full sm:w-auto">
-          <button
-            onClick={() => setViewMode('cards')}
-            className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
-              viewMode === 'cards'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Cards
-          </button>
-          <button
-            onClick={() => setViewMode('compact')}
-            className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
-              viewMode === 'compact'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Compact
-          </button>
-        </div>
+        {/* View Mode Toggle (only for requests tab) */}
+        {activeTab === 'requests' && (
+          <div className="flex gap-2 bg-gray-800 p-1 rounded-lg border border-gray-700 w-full sm:w-auto">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
+                viewMode === 'cards'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Cards
+            </button>
+            <button
+              onClick={() => setViewMode('compact')}
+              className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
+                viewMode === 'compact'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Compact
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Statistics Cards */}
-      {statsData && (
+      {/* Tabs */}
+      <div className="border-b border-gray-700">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'requests'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <span>Requests</span>
+              {statsData && (
+                <span className="ml-2 bg-gray-700 text-gray-300 py-0.5 px-2 rounded-full text-xs font-medium">
+                  {statsData.total_requests || 0}
+                </span>
+              )}
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'users'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span>Users</span>
+              {usersData && (
+                <span className="ml-2 bg-gray-700 text-gray-300 py-0.5 px-2 rounded-full text-xs font-medium">
+                  {usersData.count || 0}
+                </span>
+              )}
+            </div>
+          </button>
+        </nav>
+      </div>
+
+      {/* Requests Tab Content */}
+      {activeTab === 'requests' && (
+        <>
+          {/* Statistics Cards */}
+          {statsData && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {statusOptions.map((option) => (
             <button
@@ -194,10 +375,93 @@ const Admin = () => {
           )}
         </div>
 
+        {/* Sort Controls */}
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="date">Sort by Date</option>
+          <option value="user">Sort by User</option>
+          <option value="title">Sort by Title</option>
+          <option value="type">Sort by Type</option>
+        </select>
+
+        <button
+          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+          className="px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors"
+          title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {sortOrder === 'asc' ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            )}
+          </svg>
+        </button>
+
         <div className="text-sm text-gray-400 flex items-center px-3 bg-gray-800 rounded-lg border border-gray-700">
           Showing {filteredRequests.length} of {requestsData?.requests.length || 0} requests
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedRequests.size > 0 && (
+        <div className="bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-blue-200">
+                {selectedRequests.size} request{selectedRequests.size !== 1 ? 's' : ''} selected
+              </span>
+              <button
+                onClick={clearSelection}
+                className="text-xs text-blue-300 hover:text-blue-100 underline"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center">
+              <button
+                onClick={() => handleBulkAction('approve')}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Approve All
+              </button>
+              <button
+                onClick={() => handleBulkAction('reject')}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reject All
+              </button>
+              <button
+                onClick={() => handleBulkAction('complete')}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Complete All
+              </button>
+              <button
+                onClick={() => handleBulkAction('delete')}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Requests List */}
       {requestsLoading ? (
@@ -215,6 +479,20 @@ const Admin = () => {
         </div>
       ) : viewMode === 'cards' ? (
         <div className="space-y-4">
+          {/* Select All Header */}
+          {filteredRequests.length > 0 && (
+            <div className="bg-gray-800 rounded-lg p-3 border border-gray-700 flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={selectedRequests.size === filteredRequests.length && filteredRequests.length > 0}
+                onChange={toggleSelectAll}
+                className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700 cursor-pointer"
+              />
+              <span className="text-sm text-gray-300 font-medium">
+                Select all {filteredRequests.length} request{filteredRequests.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
           {filteredRequests.map((request) => (
             <AdminRequestCard
               key={request.id}
@@ -223,6 +501,8 @@ const Admin = () => {
               onAdminNotesUpdate={handleAdminNotesUpdate}
               getStatusColor={getStatusColor}
               getTimeAgo={getTimeAgo}
+              isSelected={selectedRequests.has(request.id)}
+              onToggleSelect={toggleSelectRequest}
             />
           ))}
         </div>
@@ -231,6 +511,14 @@ const Admin = () => {
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-900">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedRequests.size === filteredRequests.length && filteredRequests.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700 cursor-pointer"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Media</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
@@ -246,20 +534,132 @@ const Admin = () => {
                   onQuickAction={handleQuickAction}
                   getStatusColor={getStatusColor}
                   getTimeAgo={getTimeAgo}
+                  isSelected={selectedRequests.has(request.id)}
+                  onToggleSelect={toggleSelectRequest}
                 />
               ))}
             </tbody>
           </table>
         </div>
       )}
+        </>
+      )}
+
+      {/* Users Tab Content */}
+      {activeTab === 'users' && (
+        <>
+          {usersLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+          ) : usersData && usersData.users.length === 0 ? (
+            <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
+              <svg className="mx-auto h-12 w-12 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <p className="text-gray-400">No users found</p>
+            </div>
+          ) : (
+            <div className="bg-gray-800 rounded-lg shadow border border-gray-700 overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-gray-900">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Requests</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Joined</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {usersData?.users.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-800">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">
+                            {user.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-medium text-white">{user.username}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-300">{user.email}</td>
+                      <td className="px-6 py-4">
+                        {user.is_admin ? (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-900 bg-opacity-50 text-purple-200 border border-purple-700">
+                            Admin
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 border border-gray-600">
+                            User
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-300">{user.request_count}</td>
+                      <td className="px-6 py-4 text-sm text-gray-400">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => handleToggleAdmin(user.id, user.is_admin)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                              user.is_admin
+                                ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                                : 'bg-purple-600 hover:bg-purple-700 text-white'
+                            }`}
+                            title={user.is_admin ? 'Remove admin' : 'Make admin'}
+                          >
+                            {user.is_admin ? (
+                              <div className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6z" />
+                                </svg>
+                                <span>Remove Admin</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                </svg>
+                                <span>Make Admin</span>
+                              </div>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id, user.username)}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md transition-colors"
+                            title="Delete user"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
 
 // Card view component
-const AdminRequestCard = ({ request, onQuickAction, onAdminNotesUpdate, getStatusColor, getTimeAgo }) => {
+const AdminRequestCard = ({ request, onQuickAction, onAdminNotesUpdate, getStatusColor, getTimeAgo, isSelected, onToggleSelect }) => {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [adminNotes, setAdminNotes] = useState(request.admin_notes || '');
+  const [showAuditLog, setShowAuditLog] = useState(false);
+
+  const { data: auditLogsData } = useQuery({
+    queryKey: ['auditLogs', request.id],
+    queryFn: () => requestService.getRequestAuditLogs(request.id),
+    enabled: showAuditLog,
+  });
 
   const handleSaveNotes = () => {
     onAdminNotesUpdate(request.id, adminNotes);
@@ -271,8 +671,18 @@ const AdminRequestCard = ({ request, onQuickAction, onAdminNotesUpdate, getStatu
     : '/placeholder-poster.png';
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700 hover:border-gray-600 transition-all">
+    <div className={`bg-gray-800 rounded-lg shadow-lg p-6 border transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-opacity-50' : 'border-gray-700 hover:border-gray-600'}`}>
       <div className="flex gap-4">
+        {/* Selection Checkbox */}
+        <div className="flex-shrink-0 flex items-start pt-1">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(request.id)}
+            className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700 cursor-pointer"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
         {/* Poster */}
         <div className="flex-shrink-0">
           <img
@@ -377,47 +787,94 @@ const AdminRequestCard = ({ request, onQuickAction, onAdminNotesUpdate, getStatu
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
-            {request.status === 'pending' && (
-              <>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              {request.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => onQuickAction(request.id, 'approve', request.status)}
+                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => onQuickAction(request.id, 'reject', request.status)}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Reject
+                  </button>
+                </>
+              )}
+              {request.status === 'approved' && (
+                <button
+                  onClick={() => onQuickAction(request.id, 'complete', request.status)}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Mark Complete
+                </button>
+              )}
+              {(request.status === 'rejected' || request.status === 'completed') && (
                 <button
                   onClick={() => onQuickAction(request.id, 'approve', request.status)}
-                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
                   Approve
                 </button>
-                <button
-                  onClick={() => onQuickAction(request.id, 'reject', request.status)}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Reject
-                </button>
-              </>
-            )}
-            {request.status === 'approved' && (
-              <button
-                onClick={() => onQuickAction(request.id, 'complete', request.status)}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Mark Complete
-              </button>
-            )}
-            {(request.status === 'rejected' || request.status === 'completed') && (
-              <button
-                onClick={() => onQuickAction(request.id, 'approve', request.status)}
-                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors"
-              >
-                Approve
-              </button>
+              )}
+            </div>
+
+            {/* View History Button */}
+            <button
+              onClick={() => setShowAuditLog(!showAuditLog)}
+              className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {showAuditLog ? 'Hide History' : 'View History'}
+            </button>
+
+            {/* Audit Log */}
+            {showAuditLog && (
+              <div className="mt-3 p-3 bg-gray-900 bg-opacity-70 rounded-md border border-gray-700">
+                <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Request History</h4>
+                {auditLogsData && auditLogsData.logs && auditLogsData.logs.length > 0 ? (
+                  <div className="space-y-2">
+                    {auditLogsData.logs.map((log) => (
+                      <div key={log.id} className="flex gap-2 text-xs">
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center">
+                          {log.action === 'created' && <span className="text-blue-400">+</span>}
+                          {log.action === 'approved' && <span className="text-green-400">✓</span>}
+                          {log.action === 'rejected' && <span className="text-red-400">✗</span>}
+                          {log.action === 'completed' && <span className="text-green-400">✓</span>}
+                          {log.action === 'notes_updated' && <span className="text-yellow-400">✎</span>}
+                          {log.action === 'deleted' && <span className="text-red-400">−</span>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-gray-300">
+                            <span className="font-medium text-blue-300">{log.user?.username || 'System'}</span>{' '}
+                            {log.notes}
+                          </p>
+                          <p className="text-gray-500 text-xs mt-0.5">
+                            {new Date(log.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">No history available</p>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -427,9 +884,17 @@ const AdminRequestCard = ({ request, onQuickAction, onAdminNotesUpdate, getStatu
 };
 
 // Compact table row component
-const CompactRequestRow = ({ request, onQuickAction, getStatusColor, getTimeAgo }) => {
+const CompactRequestRow = ({ request, onQuickAction, getStatusColor, getTimeAgo, isSelected, onToggleSelect }) => {
   return (
-    <tr className="hover:bg-gray-800">
+    <tr className={`${isSelected ? 'bg-blue-900 bg-opacity-20' : 'hover:bg-gray-800'}`}>
+      <td className="px-6 py-4">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect(request.id)}
+          className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700 cursor-pointer"
+        />
+      </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <img

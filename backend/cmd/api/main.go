@@ -32,6 +32,9 @@ func main() {
 		log.Fatal("Failed to initialize auth service:", err)
 	}
 
+	// Initialize audit service
+	auditService := services.NewAuditService(db)
+
 	// Initialize TMDB service
 	tmdbService, err := services.NewTMDBService()
 	if err != nil {
@@ -74,12 +77,13 @@ func main() {
 		protected.Use(middleware.AuthRequired(authService))
 		{
 			// Request endpoints
-			requestHandler := handlers.NewRequestHandler(db, plexService)
+			requestHandler := handlers.NewRequestHandler(db, plexService, auditService)
 			protected.GET("/requests", requestHandler.GetRequests)
 			protected.POST("/requests", requestHandler.CreateRequest)
 			protected.PUT("/requests/:id", requestHandler.UpdateRequest)
 			protected.DELETE("/requests/:id", requestHandler.DeleteRequest)
 			protected.GET("/requests/stats", middleware.AdminRequired(authService), requestHandler.GetRequestStats)
+			protected.GET("/requests/:id/audit-logs", middleware.AdminRequired(authService), requestHandler.GetRequestAuditLogs)
 			
 			// Search endpoints
 			searchHandler := handlers.NewSearchHandler(tmdbService, plexService, omdbService, db)
@@ -111,6 +115,17 @@ func main() {
 					plex.GET("/search", plexHandler.SearchPlex)
 					plex.GET("/libraries", plexHandler.GetLibraries)
 				}
+			}
+
+			// User management endpoints (admin only)
+			userHandler := handlers.NewUserHandler(db)
+			users := protected.Group("/users")
+			users.Use(middleware.AdminRequired(authService))
+			{
+				users.GET("", userHandler.GetUsers)
+				users.GET("/:id", userHandler.GetUser)
+				users.PUT("/:id", userHandler.UpdateUser)
+				users.DELETE("/:id", userHandler.DeleteUser)
 			}
 		}
 	}
