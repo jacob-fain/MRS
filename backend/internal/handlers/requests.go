@@ -2,21 +2,27 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jacob-fain/MRS/internal/models"
+	"github.com/jacob-fain/MRS/internal/services"
 	"gorm.io/gorm"
 )
 
 type requestHandler struct {
-	db *gorm.DB
+	db          *gorm.DB
+	plexService services.PlexServiceInterface
 }
 
 // NewRequestHandler creates a new request handler
-func NewRequestHandler(db *gorm.DB) *requestHandler {
-	return &requestHandler{db: db}
+func NewRequestHandler(db *gorm.DB, plexService services.PlexServiceInterface) *requestHandler {
+	return &requestHandler{
+		db:          db,
+		plexService: plexService,
+	}
 }
 
 // CreateRequestInput represents the request creation payload
@@ -100,6 +106,66 @@ func (h *requestHandler) GetRequests(c *gin.Context) {
 			"error": "Failed to fetch requests",
 		})
 		return
+	}
+
+	// Auto-complete any requests that are now in Plex (regardless of approval status)
+	// NOTE: This checks Plex on every GET /requests call, which may impact performance
+	// with large request volumes or slow Plex servers. Consider moving to a background
+	// job or limiting checks to specific statuses if performance becomes an issue.
+	if h.plexService != nil {
+		for i := range requests {
+			// Skip if already completed
+			if requests[i].Status == models.StatusCompleted {
+				continue
+			}
+
+			// Check if media exists in Plex
+			inPlex, err := h.plexService.CheckIfExists(
+				requests[i].Title,
+				requests[i].Year,
+				string(requests[i].MediaType),
+			)
+
+			if err != nil {
+				log.Printf("Plex check failed for request %d (%s): %v", requests[i].ID, requests[i].Title, err)
+				continue
+			}
+
+			if inPlex {
+				// Auto-complete the request
+				previousStatus := requests[i].Status
+				log.Printf("Auto-completing request %d: %s (found in Plex, was %s)", requests[i].ID, requests[i].Title, previousStatus)
+
+				updates := map[string]interface{}{
+					"status": models.StatusCompleted,
+				}
+
+				// Add appropriate auto-complete note based on previous status
+				if requests[i].AdminNotes == "" {
+					switch previousStatus {
+					case models.StatusPending:
+						updates["admin_notes"] = "Auto-completed: Media added to Plex library"
+					case models.StatusRejected:
+						updates["admin_notes"] = "Auto-completed: Media added to Plex library (request was previously rejected)"
+					case models.StatusApproved:
+						updates["admin_notes"] = "Auto-completed: Media detected in Plex library"
+					}
+				}
+
+				if err := h.db.Model(&requests[i]).Updates(updates).Error; err != nil {
+					log.Printf("Failed to auto-complete request %d: %v", requests[i].ID, err)
+				} else {
+					// Update the in-memory object to reflect the change
+					requests[i].Status = models.StatusCompleted
+					// Ensure in-memory AdminNotes matches what was persisted
+					if noteVal, ok := updates["admin_notes"]; ok {
+						if note, ok := noteVal.(string); ok {
+							requests[i].AdminNotes = note
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// Convert to response format
