@@ -38,7 +38,7 @@ const Home = () => {
         <p className="text-lg sm:text-xl text-gray-300 mb-8">
           Request movies and TV shows for your Plex Media Server
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 sm:space-x-4 justify-center items-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link
             to="/login"
             className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors min-h-[44px]"
