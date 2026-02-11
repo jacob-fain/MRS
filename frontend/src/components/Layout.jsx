@@ -9,6 +9,7 @@ const Layout = ({ children }) => {
   const [isBrowseOpen, setIsBrowseOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -30,6 +31,9 @@ const Layout = ({ children }) => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsBrowseOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setIsMobileMenuOpen(false);
       }
     };
 
@@ -64,11 +68,14 @@ const Layout = ({ children }) => {
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 mr-2 transition-colors duration-200"
+                  className="sm:hidden inline-flex items-center justify-center p-2 min-w-[44px] min-h-[44px] rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 mr-2 transition-colors duration-200"
                   aria-controls="mobile-menu"
                   aria-expanded={isMobileMenuOpen}
+                  ref={mobileMenuRef}
                 >
-                  <span className="sr-only">Open main menu</span>
+                  <span className="sr-only">
+                    {isMobileMenuOpen ? 'Close main menu' : 'Open main menu'}
+                  </span>
                   {isMobileMenuOpen ? (
                     <svg className="block h-6 w-6 transition-transform duration-200 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -233,7 +240,7 @@ const Layout = ({ children }) => {
               <Link
                 to="/search"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                className={`block px-3 py-2 rounded-md text-base font-medium min-h-[44px] flex items-center ${
                   isActive('/search')
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -244,7 +251,7 @@ const Layout = ({ children }) => {
               <Link
                 to="/cast-search"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                className={`block px-3 py-2 rounded-md text-base font-medium min-h-[44px] flex items-center ${
                   isActive('/cast-search')
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -261,7 +268,7 @@ const Layout = ({ children }) => {
                 <Link
                   to="/popular"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block pl-6 pr-3 py-2 rounded-md text-base font-medium ${
+                  className={`block pl-6 pr-3 py-2 rounded-md text-base font-medium min-h-[44px] flex items-center ${
                     isActive('/popular')
                       ? 'bg-gray-900 text-white'
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -272,7 +279,7 @@ const Layout = ({ children }) => {
                 <Link
                   to="/top-rated"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block pl-6 pr-3 py-2 rounded-md text-base font-medium ${
+                  className={`block pl-6 pr-3 py-2 rounded-md text-base font-medium min-h-[44px] flex items-center ${
                     isActive('/top-rated')
                       ? 'bg-gray-900 text-white'
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -283,7 +290,7 @@ const Layout = ({ children }) => {
                 <Link
                   to="/upcoming"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block pl-6 pr-3 py-2 rounded-md text-base font-medium ${
+                  className={`block pl-6 pr-3 py-2 rounded-md text-base font-medium min-h-[44px] flex items-center ${
                     isActive('/upcoming')
                       ? 'bg-gray-900 text-white'
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -296,7 +303,7 @@ const Layout = ({ children }) => {
               <Link
                 to="/requests"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                className={`block px-3 py-2 rounded-md text-base font-medium min-h-[44px] flex items-center ${
                   isActive('/requests')
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -308,7 +315,7 @@ const Layout = ({ children }) => {
                 <Link
                   to="/admin"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  className={`block px-3 py-2 rounded-md text-base font-medium min-h-[44px] flex items-center ${
                     isActive('/admin')
                       ? 'bg-gray-900 text-white'
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'

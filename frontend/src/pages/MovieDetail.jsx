@@ -120,6 +120,7 @@ const MovieDetail = () => {
           <button
             onClick={() => navigate(-1)}
             className="absolute top-4 left-4 bg-gray-900/80 backdrop-blur-sm text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-gray-900/95 transition-all flex items-center space-x-2 font-semibold shadow-lg border border-gray-700 min-h-[44px]"
+            aria-label="Go back"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

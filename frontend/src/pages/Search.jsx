@@ -313,7 +313,7 @@ const Search = () => {
                 <span>Previous</span>
               </button>
 
-              {/* Page Numbers - Show fewer on mobile */}
+              {/* Page Numbers */}
               <div className="flex items-center space-x-2">
                 {Array.from(
                   { length: Math.min(5, sortedAndPaginatedResults.total_pages) },
