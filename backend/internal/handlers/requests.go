@@ -41,7 +41,7 @@ type CreateRequestInput struct {
 
 // UpdateRequestInput represents the request update payload
 type UpdateRequestInput struct {
-	Status     models.RequestStatus `json:"status" binding:"omitempty,oneof=pending approved completed rejected"`
+	Status     models.RequestStatus `json:"status" binding:"omitempty,oneof=pending approved downloaded completed rejected"`
 	Notes      string               `json:"notes"`
 	AdminNotes string               `json:"admin_notes"`
 }
@@ -196,8 +196,9 @@ func (h *requestHandler) GetRequests(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /requests [post]
 func (h *requestHandler) CreateRequest(c *gin.Context) {
-	// Get user ID from context
+	// Get user info from context
 	userID, _ := c.Get("userID")
+	isAdmin, _ := c.Get("isAdmin")
 
 	var input CreateRequestInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -209,14 +210,20 @@ func (h *requestHandler) CreateRequest(c *gin.Context) {
 
 	// Check if request already exists for this user
 	var existingRequest models.Request
-	err := h.db.Where("user_id = ? AND title = ? AND media_type = ?", 
+	err := h.db.Where("user_id = ? AND title = ? AND media_type = ?",
 		userID, input.Title, input.MediaType).First(&existingRequest).Error
-	
+
 	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "You already have a request for this media",
 		})
 		return
+	}
+
+	// Auto-approve requests created by admins
+	initialStatus := models.StatusPending
+	if isAdmin.(bool) {
+		initialStatus = models.StatusApproved
 	}
 
 	// Create new request
@@ -230,7 +237,7 @@ func (h *requestHandler) CreateRequest(c *gin.Context) {
 		Overview:   input.Overview,
 		PosterPath: input.PosterPath,
 		Notes:      input.Notes,
-		Status:     models.StatusPending,
+		Status:     initialStatus,
 	}
 
 	if err := h.db.Create(&request).Error; err != nil {
@@ -240,10 +247,17 @@ func (h *requestHandler) CreateRequest(c *gin.Context) {
 		return
 	}
 
-	// Log audit entry
+	// Log audit entries
 	if h.auditService != nil {
 		if err := h.auditService.LogRequestCreated(request.ID, request.UserID); err != nil {
 			log.Printf("Failed to log audit entry for request creation (ID: %d): %v", request.ID, err)
+		}
+
+		// If auto-approved, also log the approval action
+		if isAdmin.(bool) {
+			if err := h.auditService.LogRequestStatusChange(request.ID, &request.UserID, models.StatusPending, models.StatusApproved); err != nil {
+				log.Printf("Failed to log audit entry for auto-approval (ID: %d): %v", request.ID, err)
+			}
 		}
 	}
 
