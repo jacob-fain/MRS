@@ -591,7 +591,7 @@ func (s *TMDBService) GetPopularMovies(page int) (*TMDBSearchResult, error) {
 	}
 
 	// Filter out items without posters and add media_type for consistency
-	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	filteredResults := make([]TMDBResult, 0, len(result.Results))
 	for i := range result.Results {
 		// Skip items without posters
 		if result.Results[i].PosterPath == "" {
@@ -638,7 +638,7 @@ func (s *TMDBService) GetPopularTV(page int) (*TMDBSearchResult, error) {
 	}
 
 	// Filter out items without posters and add media_type for consistency
-	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	filteredResults := make([]TMDBResult, 0, len(result.Results))
 	for i := range result.Results {
 		// Skip items without posters
 		if result.Results[i].PosterPath == "" {
@@ -685,7 +685,7 @@ func (s *TMDBService) GetTopRatedMovies(page int) (*TMDBSearchResult, error) {
 	}
 
 	// Filter out items without posters and add media_type for consistency
-	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	filteredResults := make([]TMDBResult, 0, len(result.Results))
 	for i := range result.Results {
 		// Skip items without posters
 		if result.Results[i].PosterPath == "" {
@@ -732,7 +732,7 @@ func (s *TMDBService) GetTopRatedTV(page int) (*TMDBSearchResult, error) {
 	}
 
 	// Filter out items without posters and add media_type for consistency
-	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	filteredResults := make([]TMDBResult, 0, len(result.Results))
 	for i := range result.Results {
 		// Skip items without posters
 		if result.Results[i].PosterPath == "" {
@@ -786,7 +786,7 @@ func (s *TMDBService) GetUpcomingMovies(page int) (*TMDBSearchResult, error) {
 	}
 
 	// Filter out items without posters and add media_type for consistency
-	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	filteredResults := make([]TMDBResult, 0, len(result.Results))
 	for i := range result.Results {
 		// Skip items without posters
 		if result.Results[i].PosterPath == "" {
@@ -840,7 +840,7 @@ func (s *TMDBService) GetUpcomingTV(page int) (*TMDBSearchResult, error) {
 	}
 
 	// Filter out items without posters and add media_type for consistency
-	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	filteredResults := make([]TMDBResult, 0, len(result.Results))
 	for i := range result.Results {
 		// Skip items without posters
 		if result.Results[i].PosterPath == "" {

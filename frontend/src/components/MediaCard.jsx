@@ -18,7 +18,11 @@ const MediaCard = ({ media, onRequest, isRequested, showReleaseDate = false }) =
   const formatReleaseDate = (dateString) => {
     if (!dateString) return null;
     try {
-      const date = new Date(dateString);
+      // Parse YYYY-MM-DD as local date to avoid timezone issues
+      const [year, month, day] = dateString.split('-').map(Number);
+      if (!year || !month || !day) return null;
+
+      const date = new Date(year, month - 1, day); // month is 0-indexed
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',

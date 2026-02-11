@@ -62,9 +62,9 @@ func (h *discoverHandler) GetTrending(c *gin.Context) {
 	if h.plexService != nil {
 		for i := range results.Results {
 			year := 0
-			if results.Results[i].ReleaseDate != "" {
+			if results.Results[i].ReleaseDate != "" && len(results.Results[i].ReleaseDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].ReleaseDate[:4])
-			} else if results.Results[i].FirstAirDate != "" {
+			} else if results.Results[i].FirstAirDate != "" && len(results.Results[i].FirstAirDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].FirstAirDate[:4])
 			}
 			title := results.Results[i].Title
@@ -100,7 +100,7 @@ func (h *discoverHandler) GetPopularMovies(c *gin.Context) {
 	if h.plexService != nil {
 		for i := range results.Results {
 			year := 0
-			if results.Results[i].ReleaseDate != "" {
+			if results.Results[i].ReleaseDate != "" && len(results.Results[i].ReleaseDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].ReleaseDate[:4])
 			}
 			results.Results[i].InPlex, _ = h.plexService.CheckIfExists(results.Results[i].Title, year, "movie")
@@ -132,7 +132,7 @@ func (h *discoverHandler) GetPopularTV(c *gin.Context) {
 	if h.plexService != nil {
 		for i := range results.Results {
 			year := 0
-			if results.Results[i].FirstAirDate != "" {
+			if results.Results[i].FirstAirDate != "" && len(results.Results[i].FirstAirDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].FirstAirDate[:4])
 			}
 			results.Results[i].InPlex, _ = h.plexService.CheckIfExists(results.Results[i].Name, year, "tv")
@@ -164,7 +164,7 @@ func (h *discoverHandler) GetTopRatedMovies(c *gin.Context) {
 	if h.plexService != nil {
 		for i := range results.Results {
 			year := 0
-			if results.Results[i].ReleaseDate != "" {
+			if results.Results[i].ReleaseDate != "" && len(results.Results[i].ReleaseDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].ReleaseDate[:4])
 			}
 			results.Results[i].InPlex, _ = h.plexService.CheckIfExists(results.Results[i].Title, year, "movie")
@@ -196,7 +196,7 @@ func (h *discoverHandler) GetTopRatedTV(c *gin.Context) {
 	if h.plexService != nil {
 		for i := range results.Results {
 			year := 0
-			if results.Results[i].FirstAirDate != "" {
+			if results.Results[i].FirstAirDate != "" && len(results.Results[i].FirstAirDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].FirstAirDate[:4])
 			}
 			results.Results[i].InPlex, _ = h.plexService.CheckIfExists(results.Results[i].Name, year, "tv")
@@ -228,7 +228,7 @@ func (h *discoverHandler) GetUpcomingMovies(c *gin.Context) {
 	if h.plexService != nil {
 		for i := range results.Results {
 			year := 0
-			if results.Results[i].ReleaseDate != "" {
+			if results.Results[i].ReleaseDate != "" && len(results.Results[i].ReleaseDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].ReleaseDate[:4])
 			}
 			results.Results[i].InPlex, _ = h.plexService.CheckIfExists(results.Results[i].Title, year, "movie")
@@ -260,7 +260,7 @@ func (h *discoverHandler) GetUpcomingTV(c *gin.Context) {
 	if h.plexService != nil {
 		for i := range results.Results {
 			year := 0
-			if results.Results[i].FirstAirDate != "" {
+			if results.Results[i].FirstAirDate != "" && len(results.Results[i].FirstAirDate) >= 4 {
 				year, _ = strconv.Atoi(results.Results[i].FirstAirDate[:4])
 			}
 			results.Results[i].InPlex, _ = h.plexService.CheckIfExists(results.Results[i].Name, year, "tv")
