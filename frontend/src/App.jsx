@@ -10,9 +10,11 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Search from './pages/Search';
+import CastSearch from './pages/CastSearch';
 import Requests from './pages/Requests';
 import Admin from './pages/Admin';
 import MovieDetail from './pages/MovieDetail';
+import PersonDetail from './pages/PersonDetail';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -54,11 +56,31 @@ function App() {
               }
             />
             <Route
-              path="/movie/:type/:id"
+              path="/cast-search"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <CastSearch />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/:type/:id"
               element={
                 <PrivateRoute>
                   <Layout>
                     <MovieDetail />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/person/:id"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <PersonDetail />
                   </Layout>
                 </PrivateRoute>
               }

@@ -85,7 +85,13 @@ func main() {
 			searchHandler := handlers.NewSearchHandler(tmdbService, plexService, omdbService, db)
 			protected.GET("/search", searchHandler.SearchMedia)
 			protected.GET("/search/:type/:id", searchHandler.GetMediaDetails)
-			
+
+			// Person endpoints
+			personHandler := handlers.NewPersonHandler(tmdbService)
+			protected.GET("/person/search", personHandler.SearchPerson)
+			protected.GET("/person/:id", personHandler.GetPersonDetails)
+			protected.GET("/person/:id/credits", personHandler.GetPersonCredits)
+
 			// Plex endpoints (only if service is available)
 			if plexService != nil {
 				plexHandler := handlers.NewPlexHandler(plexService)
