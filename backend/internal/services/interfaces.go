@@ -25,4 +25,7 @@ type TMDBServiceInterface interface {
 	GetMovieDetails(movieID int) (*TMDBMovieDetails, error)
 	GetTVDetails(tvID int) (*TMDBTVDetails, error)
 	GetImageURL(path string, size string) string
+	SearchPerson(query string, page int) (*TMDBPersonSearchResult, error)
+	GetPersonDetails(personID int) (*TMDBPersonDetails, error)
+	GetPersonCredits(personID int) (*TMDBPersonCredits, error)
 }

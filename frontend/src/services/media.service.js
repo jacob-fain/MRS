@@ -24,6 +24,23 @@ class MediaService {
     const response = await api.get('/plex/libraries');
     return response.data;
   }
+
+  async searchPerson(query, page = 1) {
+    const response = await api.get('/person/search', {
+      params: { q: query, page }
+    });
+    return response.data;
+  }
+
+  async getPersonDetails(personId) {
+    const response = await api.get(`/person/${personId}`);
+    return response.data;
+  }
+
+  async getPersonCredits(personId) {
+    const response = await api.get(`/person/${personId}/credits`);
+    return response.data;
+  }
 }
 
 export default new MediaService();
