@@ -14,7 +14,7 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
     setIsEditingNotes(false);
   };
 
-  const posterUrl = request.poster_path 
+  const posterUrl = request.poster_path && request.poster_path.trim() !== ''
     ? `https://image.tmdb.org/t/p/w185${request.poster_path}`
     : '/placeholder-poster.png';
 
@@ -37,7 +37,7 @@ const RequestCard = ({ request, onDelete, onUpdateNotes, getStatusColor }) => {
             <div>
               <h3 className="text-lg font-semibold text-white">{request.title}</h3>
               <p className="text-sm text-gray-400">
-                {request.year} • {request.media_type === 'movie' ? 'Movie' : 'TV Show'}
+                {request.year && request.year !== 0 ? `${request.year} • ` : ''}{request.media_type === 'movie' ? 'Movie' : 'TV Show'}
               </p>
             </div>
             <div className="flex items-center space-x-2">

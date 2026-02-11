@@ -74,7 +74,7 @@ func main() {
 		protected.Use(middleware.AuthRequired(authService))
 		{
 			// Request endpoints
-			requestHandler := handlers.NewRequestHandler(db)
+			requestHandler := handlers.NewRequestHandler(db, plexService)
 			protected.GET("/requests", requestHandler.GetRequests)
 			protected.POST("/requests", requestHandler.CreateRequest)
 			protected.PUT("/requests/:id", requestHandler.UpdateRequest)
