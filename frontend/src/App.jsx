@@ -15,6 +15,9 @@ import Requests from './pages/Requests';
 import Admin from './pages/Admin';
 import MovieDetail from './pages/MovieDetail';
 import PersonDetail from './pages/PersonDetail';
+import Popular from './pages/Popular';
+import TopRated from './pages/TopRated';
+import Upcoming from './pages/Upcoming';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -81,6 +84,36 @@ function App() {
                 <PrivateRoute>
                   <Layout>
                     <PersonDetail />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/popular"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <Popular />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/top-rated"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <TopRated />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/upcoming"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <Upcoming />
                   </Layout>
                 </PrivateRoute>
               }

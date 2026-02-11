@@ -41,6 +41,55 @@ class MediaService {
     const response = await api.get(`/person/${personId}/credits`);
     return response.data;
   }
+
+  async getTrending(mediaType = 'all', timeWindow = 'week', page = 1) {
+    const response = await api.get('/discover/trending', {
+      params: { media_type: mediaType, time_window: timeWindow, page }
+    });
+    return response.data;
+  }
+
+  async getPopularMovies(page = 1) {
+    const response = await api.get('/discover/popular/movies', {
+      params: { page }
+    });
+    return response.data;
+  }
+
+  async getPopularTV(page = 1) {
+    const response = await api.get('/discover/popular/tv', {
+      params: { page }
+    });
+    return response.data;
+  }
+
+  async getTopRatedMovies(page = 1) {
+    const response = await api.get('/discover/top-rated/movies', {
+      params: { page }
+    });
+    return response.data;
+  }
+
+  async getTopRatedTV(page = 1) {
+    const response = await api.get('/discover/top-rated/tv', {
+      params: { page }
+    });
+    return response.data;
+  }
+
+  async getUpcomingMovies(page = 1) {
+    const response = await api.get('/discover/upcoming/movies', {
+      params: { page }
+    });
+    return response.data;
+  }
+
+  async getUpcomingTV(page = 1) {
+    const response = await api.get('/discover/upcoming/tv', {
+      params: { page }
+    });
+    return response.data;
+  }
 }
 
 export default new MediaService();

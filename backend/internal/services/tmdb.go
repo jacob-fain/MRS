@@ -520,3 +520,341 @@ type TMDBPersonCrew struct {
 	ReleaseDate  string  `json:"release_date"`
 	FirstAirDate string  `json:"first_air_date"`
 }
+
+// GetTrending fetches trending content from TMDB
+// mediaType: "all", "movie", or "tv"
+// timeWindow: "day" or "week"
+func (s *TMDBService) GetTrending(mediaType, timeWindow string, page int) (*TMDBSearchResult, error) {
+	url := fmt.Sprintf("%s/trending/%s/%s?page=%d", tmdbBaseURL, mediaType, timeWindow, page)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+s.apiKey)
+	req.Header.Add("accept", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trending content: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBSearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Add full image URLs
+	for i := range result.Results {
+		if result.Results[i].PosterPath != "" {
+			result.Results[i].PosterURL = s.GetImageURL(result.Results[i].PosterPath, "w342")
+		}
+		if result.Results[i].BackdropPath != "" {
+			result.Results[i].BackdropURL = s.GetImageURL(result.Results[i].BackdropPath, "w780")
+		}
+	}
+
+	return &result, nil
+}
+
+// GetPopularMovies fetches popular movies from TMDB
+func (s *TMDBService) GetPopularMovies(page int) (*TMDBSearchResult, error) {
+	url := fmt.Sprintf("%s/movie/popular?page=%d", tmdbBaseURL, page)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+s.apiKey)
+	req.Header.Add("accept", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get popular movies: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBSearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter out items without posters and add media_type for consistency
+	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	for i := range result.Results {
+		// Skip items without posters
+		if result.Results[i].PosterPath == "" {
+			continue
+		}
+
+		result.Results[i].MediaType = "movie"
+		result.Results[i].PosterURL = s.GetImageURL(result.Results[i].PosterPath, "w342")
+		if result.Results[i].BackdropPath != "" {
+			result.Results[i].BackdropURL = s.GetImageURL(result.Results[i].BackdropPath, "w780")
+		}
+		filteredResults = append(filteredResults, result.Results[i])
+	}
+	result.Results = filteredResults
+
+	return &result, nil
+}
+
+// GetPopularTV fetches popular TV shows from TMDB
+func (s *TMDBService) GetPopularTV(page int) (*TMDBSearchResult, error) {
+	url := fmt.Sprintf("%s/tv/popular?page=%d", tmdbBaseURL, page)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+s.apiKey)
+	req.Header.Add("accept", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get popular TV shows: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBSearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter out items without posters and add media_type for consistency
+	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	for i := range result.Results {
+		// Skip items without posters
+		if result.Results[i].PosterPath == "" {
+			continue
+		}
+
+		result.Results[i].MediaType = "tv"
+		result.Results[i].PosterURL = s.GetImageURL(result.Results[i].PosterPath, "w342")
+		if result.Results[i].BackdropPath != "" {
+			result.Results[i].BackdropURL = s.GetImageURL(result.Results[i].BackdropPath, "w780")
+		}
+		filteredResults = append(filteredResults, result.Results[i])
+	}
+	result.Results = filteredResults
+
+	return &result, nil
+}
+
+// GetTopRatedMovies fetches top rated movies from TMDB
+func (s *TMDBService) GetTopRatedMovies(page int) (*TMDBSearchResult, error) {
+	url := fmt.Sprintf("%s/movie/top_rated?page=%d", tmdbBaseURL, page)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+s.apiKey)
+	req.Header.Add("accept", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get top rated movies: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBSearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter out items without posters and add media_type for consistency
+	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	for i := range result.Results {
+		// Skip items without posters
+		if result.Results[i].PosterPath == "" {
+			continue
+		}
+
+		result.Results[i].MediaType = "movie"
+		result.Results[i].PosterURL = s.GetImageURL(result.Results[i].PosterPath, "w342")
+		if result.Results[i].BackdropPath != "" {
+			result.Results[i].BackdropURL = s.GetImageURL(result.Results[i].BackdropPath, "w780")
+		}
+		filteredResults = append(filteredResults, result.Results[i])
+	}
+	result.Results = filteredResults
+
+	return &result, nil
+}
+
+// GetTopRatedTV fetches top rated TV shows from TMDB
+func (s *TMDBService) GetTopRatedTV(page int) (*TMDBSearchResult, error) {
+	url := fmt.Sprintf("%s/tv/top_rated?page=%d", tmdbBaseURL, page)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+s.apiKey)
+	req.Header.Add("accept", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get top rated TV shows: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBSearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter out items without posters and add media_type for consistency
+	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	for i := range result.Results {
+		// Skip items without posters
+		if result.Results[i].PosterPath == "" {
+			continue
+		}
+
+		result.Results[i].MediaType = "tv"
+		result.Results[i].PosterURL = s.GetImageURL(result.Results[i].PosterPath, "w342")
+		if result.Results[i].BackdropPath != "" {
+			result.Results[i].BackdropURL = s.GetImageURL(result.Results[i].BackdropPath, "w780")
+		}
+		filteredResults = append(filteredResults, result.Results[i])
+	}
+	result.Results = filteredResults
+
+	return &result, nil
+}
+
+// GetUpcomingMovies fetches upcoming movies from TMDB
+func (s *TMDBService) GetUpcomingMovies(page int) (*TMDBSearchResult, error) {
+	// Calculate date range: today to 180 days from now
+	today := time.Now().Format("2006-01-02")
+	futureDate := time.Now().AddDate(0, 0, 180).Format("2006-01-02")
+
+	url := fmt.Sprintf(
+		"%s/discover/movie?primary_release_date.gte=%s&primary_release_date.lte=%s&sort_by=popularity.desc&page=%d",
+		tmdbBaseURL, today, futureDate, page,
+	)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get upcoming movies: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBSearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter out items without posters and add media_type for consistency
+	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	for i := range result.Results {
+		// Skip items without posters
+		if result.Results[i].PosterPath == "" {
+			continue
+		}
+
+		result.Results[i].MediaType = "movie"
+		result.Results[i].PosterURL = s.GetImageURL(result.Results[i].PosterPath, "w342")
+		if result.Results[i].BackdropPath != "" {
+			result.Results[i].BackdropURL = s.GetImageURL(result.Results[i].BackdropPath, "w780")
+		}
+		filteredResults = append(filteredResults, result.Results[i])
+	}
+	result.Results = filteredResults
+
+	return &result, nil
+}
+
+// GetUpcomingTV fetches upcoming TV shows from TMDB (premiering within 180 days)
+func (s *TMDBService) GetUpcomingTV(page int) (*TMDBSearchResult, error) {
+	// Calculate date range: today to 180 days from now
+	today := time.Now().Format("2006-01-02")
+	futureDate := time.Now().AddDate(0, 0, 180).Format("2006-01-02")
+
+	url := fmt.Sprintf(
+		"%s/discover/tv?first_air_date.gte=%s&first_air_date.lte=%s&sort_by=popularity.desc&page=%d",
+		tmdbBaseURL, today, futureDate, page,
+	)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get upcoming TV shows: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBSearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter out items without posters and add media_type for consistency
+	filteredResults := make([]TMDBMedia, 0, len(result.Results))
+	for i := range result.Results {
+		// Skip items without posters
+		if result.Results[i].PosterPath == "" {
+			continue
+		}
+
+		result.Results[i].MediaType = "tv"
+		result.Results[i].PosterURL = s.GetImageURL(result.Results[i].PosterPath, "w342")
+		if result.Results[i].BackdropPath != "" {
+			result.Results[i].BackdropURL = s.GetImageURL(result.Results[i].BackdropPath, "w780")
+		}
+		filteredResults = append(filteredResults, result.Results[i])
+	}
+	result.Results = filteredResults
+
+	return &result, nil
+}

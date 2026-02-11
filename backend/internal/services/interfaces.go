@@ -28,4 +28,11 @@ type TMDBServiceInterface interface {
 	SearchPerson(query string, page int) (*TMDBPersonSearchResult, error)
 	GetPersonDetails(personID int) (*TMDBPersonDetails, error)
 	GetPersonCredits(personID int) (*TMDBPersonCredits, error)
+	GetTrending(mediaType, timeWindow string, page int) (*TMDBSearchResult, error)
+	GetPopularMovies(page int) (*TMDBSearchResult, error)
+	GetPopularTV(page int) (*TMDBSearchResult, error)
+	GetTopRatedMovies(page int) (*TMDBSearchResult, error)
+	GetTopRatedTV(page int) (*TMDBSearchResult, error)
+	GetUpcomingMovies(page int) (*TMDBSearchResult, error)
+	GetUpcomingTV(page int) (*TMDBSearchResult, error)
 }
