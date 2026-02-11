@@ -119,9 +119,12 @@ const MovieDetail = () => {
           <div className="absolute inset-0 bg-black bg-opacity-60"></div>
           <button
             onClick={() => navigate(-1)}
-            className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all"
+            className="absolute top-4 left-4 bg-gray-900/80 backdrop-blur-sm text-white px-6 py-3 rounded-lg hover:bg-gray-900/95 transition-all flex items-center space-x-2 font-semibold shadow-lg border border-gray-700"
           >
-            ← Back
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Back</span>
           </button>
         </div>
       )}
@@ -175,7 +178,7 @@ const MovieDetail = () => {
                   <dd className="text-sm text-gray-200">{releaseDate || 'Unknown'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-400">Rating</dt>
+                  <dt className="text-sm font-medium text-gray-400">TMDB Rating</dt>
                   <dd className="text-sm text-gray-200 flex items-center">
                     <svg className="w-4 h-4 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20">
                       <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
@@ -184,7 +187,7 @@ const MovieDetail = () => {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-400">Vote Count</dt>
+                  <dt className="text-sm font-medium text-gray-400">TMDB Votes</dt>
                   <dd className="text-sm text-gray-200">{mediaDetails.vote_count?.toLocaleString() || 'N/A'}</dd>
                 </div>
                 {mediaDetails.runtime && (
@@ -233,6 +236,63 @@ const MovieDetail = () => {
                 </p>
               </div>
             </div>
+
+            {/* Ratings Card */}
+            {mediaDetails.ratings && (mediaDetails.ratings.imdb_rating || mediaDetails.ratings.rotten_tomatoes_score || mediaDetails.ratings.metascore) && (
+              <div className="bg-gray-800 rounded-lg shadow-md p-4 mb-6 border border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-3">Ratings</h3>
+                <div className="flex flex-wrap gap-3">
+                  {mediaDetails.ratings.imdb_rating && mediaDetails.ratings.imdb_rating !== 'N/A' && (
+                    <div className="bg-gray-700/50 rounded-lg px-4 py-2 flex items-center space-x-2">
+                      <span className="text-xl">⭐</span>
+                      <div>
+                        <div className="text-lg font-bold text-white">{mediaDetails.ratings.imdb_rating}<span className="text-sm text-gray-400">/10</span></div>
+                        <div className="text-xs text-gray-400">IMDB</div>
+                      </div>
+                    </div>
+                  )}
+                  {mediaDetails.ratings.rotten_tomatoes_score && mediaDetails.ratings.rotten_tomatoes_score !== 'N/A' && (
+                    <div className="bg-gray-700/50 rounded-lg px-4 py-2 flex items-center space-x-2">
+                      <span className="text-xl">🍅</span>
+                      <div>
+                        <div className="text-lg font-bold text-white">{mediaDetails.ratings.rotten_tomatoes_score}</div>
+                        <div className="text-xs text-gray-400">Rotten Tomatoes</div>
+                      </div>
+                    </div>
+                  )}
+                  {mediaDetails.ratings.metascore && mediaDetails.ratings.metascore !== 'N/A' && (
+                    <div className="bg-gray-700/50 rounded-lg px-4 py-2 flex items-center space-x-2">
+                      <span className="text-sm font-bold text-green-400">MC</span>
+                      <div>
+                        <div className="text-lg font-bold text-white">{mediaDetails.ratings.metascore}<span className="text-sm text-gray-400">/100</span></div>
+                        <div className="text-xs text-gray-400">Metacritic</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Box Office & Awards */}
+            {mediaDetails.ratings && (mediaDetails.ratings.box_office || mediaDetails.ratings.awards) && (
+              <div className="bg-gray-800 rounded-lg shadow-md p-4 mb-6 border border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-3">Box Office & Awards</h3>
+                <dl className="space-y-2">
+                  {mediaDetails.ratings.box_office && mediaDetails.ratings.box_office !== 'N/A' && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-400">Box Office</dt>
+                      <dd className="text-base text-white font-semibold">{mediaDetails.ratings.box_office}</dd>
+                    </div>
+                  )}
+                  {mediaDetails.ratings.awards && mediaDetails.ratings.awards !== 'N/A' && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-400">Awards</dt>
+                      <dd className="text-sm text-gray-200">{mediaDetails.ratings.awards}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
 
             {/* Cast */}
             {mediaDetails.credits && mediaDetails.credits.cast && mediaDetails.credits.cast.length > 0 && (

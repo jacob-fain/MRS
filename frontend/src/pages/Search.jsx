@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { debounce } from 'lodash';
 import mediaService from '../services/media.service';
@@ -27,9 +28,10 @@ const SkeletonCard = () => (
 );
 
 const Search = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(searchParams.get('q') || '');
+  const [page, setPage] = useState(parseInt(searchParams.get('page')) || 1);
   const queryClient = useQueryClient();
 
   const debouncedSearch = useCallback(
@@ -51,6 +53,18 @@ const Search = () => {
     setDebouncedQuery('');
     setPage(1);
   };
+
+  // Sync URL params with state
+  useEffect(() => {
+    const params = {};
+    if (debouncedQuery) {
+      params.q = debouncedQuery;
+    }
+    if (page > 1) {
+      params.page = page.toString();
+    }
+    setSearchParams(params, { replace: true });
+  }, [debouncedQuery, page, setSearchParams]);
 
   // Multi-page fetch for proper sorting of first few pages
   const fetchMultiplePages = async (query, startPage, pageCount) => {
@@ -100,7 +114,8 @@ const Search = () => {
     },
     enabled: debouncedQuery.length > 0,
     keepPreviousData: true,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,  // 5 minutes
+    gcTime: 10 * 60 * 1000,     // 10 minutes (cache retention)
   });
 
   // Sort and paginate results
@@ -126,7 +141,7 @@ const Search = () => {
         ...searchResults,
         results: pageResults,
         page: page,
-        total_pages: Math.ceil(sortedResults.length / pageSize)
+        total_pages: searchResults.total_pages  // Keep original TMDB total
       };
     } else {
       // For single page results (page 4+), return as-is
@@ -175,14 +190,11 @@ const Search = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Search Media</h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Discover movies and TV shows to add to your Plex server. Search through thousands of titles and request what you want to watch.
-          </p>
+          <h1 className="text-4xl font-bold text-white">Search</h1>
         </div>
 
         {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-12">
+        <div className="max-w-2xl mx-auto mb-8">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -246,7 +258,12 @@ const Search = () => {
                     Failed to search for "{debouncedQuery}". Please check your connection and try again.
                   </p>
                   <button
-                    onClick={() => queryClient.invalidateQueries(['search', debouncedQuery, page])}
+                    onClick={() => {
+                      const queryKey = needsMultiPageFetch
+                        ? ['search', debouncedQuery, 'multi-page-1-3']
+                        : ['search', debouncedQuery, page];
+                      queryClient.invalidateQueries(queryKey);
+                    }}
                     className="mt-3 text-sm font-medium text-red-400 hover:text-red-300 underline"
                   >
                     Try Again
@@ -353,28 +370,11 @@ const Search = () => {
 
           {/* Initial State */}
           {showInitialState && (
-            <div className="text-center py-16">
-              <div className="max-w-lg mx-auto">
-                <div className="mb-6">
-                  <svg className="mx-auto h-20 w-20 text-blue-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-medium text-white mb-3">Start Your Search</h3>
-                <p className="text-gray-300 mb-6">
-                  Search through our extensive database of movies and TV shows. Find something new to watch and request it for your Plex server.
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 max-w-sm mx-auto">
-                  <div className="text-center">
-                    <div className="font-semibold text-gray-200 text-lg">Movies</div>
-                    <div>Latest releases and classics</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-gray-200 text-lg">TV Shows</div>
-                    <div>Series and documentaries</div>
-                  </div>
-                </div>
-              </div>
+            <div className="text-center py-20">
+              <svg className="mx-auto h-16 w-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p className="text-gray-400 text-lg">Search for movies and TV shows</p>
             </div>
           )}
         </div>

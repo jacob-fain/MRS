@@ -6,19 +6,25 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jacob-fain/MRS/internal/models"
 	"github.com/jacob-fain/MRS/internal/services"
+	"gorm.io/gorm"
 )
 
 type searchHandler struct {
 	tmdbService services.TMDBServiceInterface
 	plexService services.PlexServiceInterface
+	omdbService services.OMDBServiceInterface
+	db          *gorm.DB
 }
 
-// NewSearchHandler creates a new search handler with TMDB and optional Plex services
-func NewSearchHandler(tmdbService services.TMDBServiceInterface, plexService services.PlexServiceInterface) *searchHandler {
+// NewSearchHandler creates a new search handler with TMDB, Plex, and OMDB services
+func NewSearchHandler(tmdbService services.TMDBServiceInterface, plexService services.PlexServiceInterface, omdbService services.OMDBServiceInterface, db *gorm.DB) *searchHandler {
 	return &searchHandler{
 		tmdbService: tmdbService,
 		plexService: plexService,
+		omdbService: omdbService,
+		db:          db,
 	}
 }
 
@@ -142,7 +148,7 @@ func (h *searchHandler) GetMediaDetails(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		// Check Plex availability
 		if h.plexService != nil {
 			year := 0
@@ -151,7 +157,40 @@ func (h *searchHandler) GetMediaDetails(c *gin.Context) {
 			}
 			movieDetails.InPlex, _ = h.plexService.CheckIfExists(movieDetails.Title, year, "movie")
 		}
-		
+
+		// Fetch OMDB ratings if IMDB ID is available
+		if movieDetails.ExternalIDs.IMDBID != "" {
+			ratings := h.fetchOrCacheRatings(movieDetails.ExternalIDs.IMDBID)
+			if ratings != nil {
+				// Add ratings to response
+				response := gin.H{
+					"id":                   movieDetails.ID,
+					"title":                movieDetails.Title,
+					"overview":             movieDetails.Overview,
+					"release_date":         movieDetails.ReleaseDate,
+					"runtime":              movieDetails.Runtime,
+					"vote_average":         movieDetails.VoteAverage,
+					"vote_count":           movieDetails.VoteCount,
+					"popularity":           movieDetails.Popularity,
+					"poster_path":          movieDetails.PosterPath,
+					"backdrop_path":        movieDetails.BackdropPath,
+					"genres":               movieDetails.Genres,
+					"production_companies": movieDetails.ProductionCompanies,
+					"status":               movieDetails.Status,
+					"tagline":              movieDetails.Tagline,
+					"external_ids":         movieDetails.ExternalIDs,
+					"credits":              movieDetails.Credits,
+					"videos":               movieDetails.Videos,
+					"poster_url":           movieDetails.PosterURL,
+					"backdrop_url":         movieDetails.BackdropURL,
+					"in_plex":              movieDetails.InPlex,
+					"ratings":              ratings,
+				}
+				c.JSON(http.StatusOK, response)
+				return
+			}
+		}
+
 		details = movieDetails
 	} else {
 		tvDetails, err := h.tmdbService.GetTVDetails(id)
@@ -161,7 +200,7 @@ func (h *searchHandler) GetMediaDetails(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		// Check Plex availability
 		if h.plexService != nil {
 			year := 0
@@ -170,9 +209,87 @@ func (h *searchHandler) GetMediaDetails(c *gin.Context) {
 			}
 			tvDetails.InPlex, _ = h.plexService.CheckIfExists(tvDetails.Name, year, "tv")
 		}
-		
+
+		// Fetch OMDB ratings if IMDB ID is available
+		if tvDetails.ExternalIDs.IMDBID != "" {
+			ratings := h.fetchOrCacheRatings(tvDetails.ExternalIDs.IMDBID)
+			if ratings != nil {
+				// Add ratings to response
+				response := gin.H{
+					"id":                  tvDetails.ID,
+					"name":                tvDetails.Name,
+					"overview":            tvDetails.Overview,
+					"first_air_date":      tvDetails.FirstAirDate,
+					"last_air_date":       tvDetails.LastAirDate,
+					"number_of_seasons":   tvDetails.NumberOfSeasons,
+					"number_of_episodes":  tvDetails.NumberOfEpisodes,
+					"vote_average":        tvDetails.VoteAverage,
+					"vote_count":          tvDetails.VoteCount,
+					"popularity":          tvDetails.Popularity,
+					"poster_path":         tvDetails.PosterPath,
+					"backdrop_path":       tvDetails.BackdropPath,
+					"genres":              tvDetails.Genres,
+					"networks":            tvDetails.Networks,
+					"status":              tvDetails.Status,
+					"type":                tvDetails.Type,
+					"external_ids":        tvDetails.ExternalIDs,
+					"credits":             tvDetails.Credits,
+					"videos":              tvDetails.Videos,
+					"poster_url":          tvDetails.PosterURL,
+					"backdrop_url":        tvDetails.BackdropURL,
+					"in_plex":             tvDetails.InPlex,
+					"ratings":             ratings,
+				}
+				c.JSON(http.StatusOK, response)
+				return
+			}
+		}
+
 		details = tvDetails
 	}
-	
+
 	c.JSON(http.StatusOK, details)
+}
+
+// fetchOrCacheRatings fetches ratings from cache or OMDB API
+func (h *searchHandler) fetchOrCacheRatings(imdbID string) *services.OMDBRatings {
+	// Check if OMDB service is available
+	if h.omdbService == nil || h.db == nil {
+		return nil
+	}
+
+	// Try to get from cache first
+	var cachedRating models.Rating
+	if err := h.db.Where("imdb_id = ?", imdbID).First(&cachedRating).Error; err == nil {
+		// Found in cache
+		return &services.OMDBRatings{
+			IMDBRating:          cachedRating.IMDBRating,
+			IMDBVotes:           cachedRating.IMDBVotes,
+			RottenTomatoesScore: cachedRating.RottenTomatoesScore,
+			Metascore:           cachedRating.Metascore,
+			Awards:              cachedRating.Awards,
+			BoxOffice:           cachedRating.BoxOffice,
+		}
+	}
+
+	// Not in cache, fetch from OMDB
+	ratings, err := h.omdbService.GetRatingsByIMDB(imdbID)
+	if err != nil {
+		// Failed to fetch, return nil
+		return nil
+	}
+
+	// Cache the ratings
+	newRating := models.Rating{
+		IMDBID:              imdbID,
+		IMDBRating:          ratings.IMDBRating,
+		IMDBVotes:           ratings.IMDBVotes,
+		RottenTomatoesScore: ratings.RottenTomatoesScore,
+		Metascore:           ratings.Metascore,
+		Awards:              ratings.Awards,
+		BoxOffice:           ratings.BoxOffice,
+	}
+	h.db.Create(&newRating)
+
+	return ratings
 }
