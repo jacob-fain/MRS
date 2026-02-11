@@ -300,7 +300,20 @@ const MovieDetail = () => {
                 <h2 className="text-xl font-semibold text-white mb-4">Cast</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {mediaDetails.credits.cast.slice(0, 10).map((person) => (
-                    <div key={person.id} className="text-center">
+                    <div
+                      key={person.id}
+                      onClick={() => navigate(`/person/${person.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/person/${person.id}`);
+                        }
+                      }}
+                      className="text-center cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg p-2"
+                      aria-label={`View ${person.name}'s filmography`}
+                    >
                       <div className="aspect-[3/4] mb-2">
                         <AvatarWithFallback
                           src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null}
@@ -308,7 +321,7 @@ const MovieDetail = () => {
                           className="w-full h-full object-cover rounded-md"
                         />
                       </div>
-                      <h3 className="font-medium text-sm text-white truncate">{person.name}</h3>
+                      <h3 className="font-medium text-sm text-white truncate hover:text-blue-400">{person.name}</h3>
                       <p className="text-xs text-gray-400 truncate">{person.character}</p>
                     </div>
                   ))}
@@ -325,7 +338,20 @@ const MovieDetail = () => {
                     .filter(person => ['Director', 'Producer', 'Executive Producer', 'Screenplay', 'Writer'].includes(person.job))
                     .slice(0, 9)
                     .map((person, index) => (
-                      <div key={`${person.id}-${index}`} className="flex items-center space-x-3">
+                      <div
+                        key={`${person.id}-${index}`}
+                        onClick={() => navigate(`/person/${person.id}`)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            navigate(`/person/${person.id}`);
+                          }
+                        }}
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-700/50 transition-colors p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        aria-label={`View ${person.name}'s filmography`}
+                      >
                         <div className="flex-shrink-0">
                           <AvatarWithFallback
                             src={person.profile_path ? `https://image.tmdb.org/t/p/w92${person.profile_path}` : null}
@@ -335,7 +361,7 @@ const MovieDetail = () => {
                           />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-sm text-white truncate">{person.name}</h3>
+                          <h3 className="font-medium text-sm text-white truncate hover:text-blue-400">{person.name}</h3>
                           <p className="text-xs text-gray-400 truncate">{person.job}</p>
                         </div>
                       </div>

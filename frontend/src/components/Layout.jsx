@@ -39,6 +39,16 @@ const Layout = ({ children }) => {
                     Search
                   </Link>
                   <Link
+                    to="/cast-search"
+                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      isActive('/cast-search')
+                        ? 'border-blue-400 text-white'
+                        : 'border-transparent text-gray-300 hover:border-gray-500 hover:text-white'
+                    }`}
+                  >
+                    Cast Search
+                  </Link>
+                  <Link
                     to="/requests"
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                       isActive('/requests')

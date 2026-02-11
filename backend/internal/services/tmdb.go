@@ -500,6 +500,7 @@ type TMDBPersonCast struct {
 	PosterPath   string  `json:"poster_path"`
 	PosterURL    string  `json:"poster_url"`
 	VoteAverage  float64 `json:"vote_average"`
+	VoteCount    int     `json:"vote_count"`
 	ReleaseDate  string  `json:"release_date"`
 	FirstAirDate string  `json:"first_air_date"`
 }
@@ -515,6 +516,7 @@ type TMDBPersonCrew struct {
 	PosterPath   string  `json:"poster_path"`
 	PosterURL    string  `json:"poster_url"`
 	VoteAverage  float64 `json:"vote_average"`
+	VoteCount    int     `json:"vote_count"`
 	ReleaseDate  string  `json:"release_date"`
 	FirstAirDate string  `json:"first_air_date"`
 }

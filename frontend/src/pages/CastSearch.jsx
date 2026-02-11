@@ -54,16 +54,44 @@ const CastSearch = () => {
     setSearchParams(params, { replace: true });
   }, [debouncedQuery, page, setSearchParams]);
 
-  // Fetch person search results
+  // Fetch first 20 pages of person search results for better sorting and filtering
   const { data: searchResults, isLoading, error } = useQuery({
-    queryKey: ['person-search', debouncedQuery, page],
-    queryFn: () => mediaService.searchPerson(debouncedQuery, page),
+    queryKey: ['person-search-multi', debouncedQuery],
+    queryFn: async () => {
+      // Fetch first 20 pages in parallel to ensure we get popular people even after filtering
+      const pagePromises = [];
+      for (let i = 1; i <= 20; i++) {
+        pagePromises.push(mediaService.searchPerson(debouncedQuery, i));
+      }
+
+      const pages = await Promise.all(pagePromises);
+
+      // Combine all results
+      const allResults = pages.flatMap(page => page.results || []);
+
+      return {
+        results: allResults,
+        total_results: pages[0]?.total_results || 0,
+      };
+    },
     enabled: debouncedQuery.length > 0,
     keepPreviousData: true,
     staleTime: 5 * 60 * 1000,
   });
 
-  const hasResults = searchResults?.results?.length > 0;
+  // Filter people with photos and sort by popularity
+  const allFilteredResults = searchResults?.results
+    ?.filter(person => person.profile_path || person.profile_url) // Only show people with photos
+    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0)); // Sort by popularity (TMDB's metric)
+
+  // Client-side pagination
+  const pageSize = 20;
+  const totalPages = allFilteredResults ? Math.ceil(allFilteredResults.length / pageSize) : 0;
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedResults = allFilteredResults?.slice(startIndex, endIndex);
+
+  const hasResults = paginatedResults?.length > 0;
   const showEmptyState = debouncedQuery.length > 0 && !isLoading && !hasResults;
   const showInitialState = searchQuery === '' && debouncedQuery === '';
 
@@ -117,13 +145,13 @@ const CastSearch = () => {
           </div>
 
           {/* Search Stats */}
-          {searchResults && hasResults && (
+          {allFilteredResults && hasResults && (
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-400">
-                Found <span className="font-semibold text-white">{searchResults.total_results.toLocaleString()}</span> people matching
+                Found <span className="font-semibold text-white">{allFilteredResults.length}</span> people matching
                 <span className="font-semibold text-white"> "{debouncedQuery}"</span>
-                {searchResults.total_pages > 1 && (
-                  <span> • Page {page} of {searchResults.total_pages}</span>
+                {totalPages > 1 && (
+                  <span> • Page {page} of {totalPages}</span>
                 )}
               </p>
             </div>
@@ -163,7 +191,7 @@ const CastSearch = () => {
           {/* Results */}
           {hasResults && !error && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-              {searchResults.results.map((person) => (
+              {paginatedResults.map((person) => (
                 <div
                   key={person.id}
                   onClick={() => handlePersonClick(person.id)}
@@ -201,7 +229,15 @@ const CastSearch = () => {
                       {person.name}
                     </h3>
                     {person.known_for_department && (
-                      <p className="text-xs text-gray-400">{person.known_for_department}</p>
+                      <p className="text-xs text-gray-400 mb-2">{person.known_for_department}</p>
+                    )}
+                    {person.popularity > 0 && (
+                      <div className="flex items-center text-gray-500">
+                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span className="text-xs">{person.popularity.toFixed(1)}</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -210,7 +246,7 @@ const CastSearch = () => {
           )}
 
           {/* Pagination */}
-          {searchResults && searchResults.total_pages > 1 && !error && (
+          {totalPages > 1 && !error && (
             <div className="flex items-center justify-center space-x-4 mt-12">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -224,12 +260,12 @@ const CastSearch = () => {
               </button>
 
               <span className="text-gray-300">
-                Page {page} of {searchResults.total_pages}
+                Page {page} of {totalPages}
               </span>
 
               <button
-                onClick={() => setPage(p => Math.min(searchResults.total_pages, p + 1))}
-                disabled={page === searchResults.total_pages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
                 className="flex items-center space-x-2 px-6 py-3 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 <span>Next</span>
