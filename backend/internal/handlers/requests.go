@@ -109,6 +109,9 @@ func (h *requestHandler) GetRequests(c *gin.Context) {
 	}
 
 	// Auto-complete any requests that are now in Plex (regardless of approval status)
+	// NOTE: This checks Plex on every GET /requests call, which may impact performance
+	// with large request volumes or slow Plex servers. Consider moving to a background
+	// job or limiting checks to specific statuses if performance becomes an issue.
 	if h.plexService != nil {
 		for i := range requests {
 			// Skip if already completed
@@ -123,9 +126,15 @@ func (h *requestHandler) GetRequests(c *gin.Context) {
 				string(requests[i].MediaType),
 			)
 
-			if err == nil && inPlex {
+			if err != nil {
+				log.Printf("Plex check failed for request %d (%s): %v", requests[i].ID, requests[i].Title, err)
+				continue
+			}
+
+			if inPlex {
 				// Auto-complete the request
-				log.Printf("Auto-completing request %d: %s (found in Plex, was %s)", requests[i].ID, requests[i].Title, requests[i].Status)
+				previousStatus := requests[i].Status
+				log.Printf("Auto-completing request %d: %s (found in Plex, was %s)", requests[i].ID, requests[i].Title, previousStatus)
 
 				updates := map[string]interface{}{
 					"status": models.StatusCompleted,
@@ -133,7 +142,7 @@ func (h *requestHandler) GetRequests(c *gin.Context) {
 
 				// Add appropriate auto-complete note based on previous status
 				if requests[i].AdminNotes == "" {
-					switch requests[i].Status {
+					switch previousStatus {
 					case models.StatusPending:
 						updates["admin_notes"] = "Auto-completed: Media added to Plex library"
 					case models.StatusRejected:
@@ -148,14 +157,10 @@ func (h *requestHandler) GetRequests(c *gin.Context) {
 				} else {
 					// Update the in-memory object to reflect the change
 					requests[i].Status = models.StatusCompleted
-					if requests[i].AdminNotes == "" {
-						switch requests[i].Status {
-						case models.StatusPending:
-							requests[i].AdminNotes = "Auto-completed: Media added to Plex library"
-						case models.StatusRejected:
-							requests[i].AdminNotes = "Auto-completed: Media added to Plex library (request was previously rejected)"
-						case models.StatusApproved:
-							requests[i].AdminNotes = "Auto-completed: Media detected in Plex library"
+					// Ensure in-memory AdminNotes matches what was persisted
+					if noteVal, ok := updates["admin_notes"]; ok {
+						if note, ok := noteVal.(string); ok {
+							requests[i].AdminNotes = note
 						}
 					}
 				}

@@ -8,10 +8,13 @@ const Admin = () => {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'compact'
   const queryClient = useQueryClient();
 
-  // Fetch all requests
+  // Fetch all requests (server-side filtering by status)
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
-    queryKey: ['adminRequests'],
-    queryFn: () => requestService.getRequests({}),
+    queryKey: ['adminRequests', selectedStatus],
+    queryFn: () => {
+      const params = selectedStatus !== 'all' ? { status: selectedStatus } : {};
+      return requestService.getRequests(params);
+    },
   });
 
   // Fetch statistics
@@ -51,18 +54,13 @@ const Admin = () => {
     });
   };
 
-  // Filter and search requests
+  // Filter and search requests (client-side search only, status is server-side)
   const filteredRequests = useMemo(() => {
     if (!requestsData?.requests) return [];
 
     let filtered = requestsData.requests;
 
-    // Filter by status
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(req => req.status === selectedStatus);
-    }
-
-    // Search filter
+    // Search filter (client-side for responsiveness)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(req =>
@@ -73,7 +71,7 @@ const Admin = () => {
     }
 
     return filtered;
-  }, [requestsData, selectedStatus, searchQuery]);
+  }, [requestsData, searchQuery]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -418,7 +416,7 @@ const AdminRequestCard = ({ request, onQuickAction, onAdminNotesUpdate, getStatu
                 onClick={() => onQuickAction(request.id, 'approve', request.status)}
                 className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors"
               >
-                Reopen Request
+                Approve
               </button>
             )}
           </div>
@@ -431,7 +429,7 @@ const AdminRequestCard = ({ request, onQuickAction, onAdminNotesUpdate, getStatu
 // Compact table row component
 const CompactRequestRow = ({ request, onQuickAction, getStatusColor, getTimeAgo }) => {
   return (
-    <tr className="hover:bg-gray-750">
+    <tr className="hover:bg-gray-800">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <img
@@ -491,6 +489,28 @@ const CompactRequestRow = ({ request, onQuickAction, getStatusColor, getTimeAgo 
                 </svg>
               </button>
             </>
+          )}
+          {request.status === 'approved' && (
+            <button
+              onClick={() => onQuickAction(request.id, 'complete', request.status)}
+              className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+              title="Mark as completed"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          )}
+          {(request.status === 'rejected' || request.status === 'completed') && (
+            <button
+              onClick={() => onQuickAction(request.id, 'approve', request.status)}
+              className="p-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
+              title="Approve"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           )}
         </div>
       </td>

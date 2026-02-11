@@ -17,7 +17,7 @@ func TestRequestHandler_GetRequests(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db)
+	handler := NewRequestHandler(db, nil) // plexService not needed for basic tests
 
 	// Create test users
 	user1 := testutil.CreateTestUser(t, db, "user1@example.com", "user1", "pass", false)
@@ -116,7 +116,7 @@ func TestRequestHandler_CreateRequest(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db)
+	handler := NewRequestHandler(db, nil)
 
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
 
@@ -228,7 +228,7 @@ func TestRequestHandler_UpdateRequest(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db)
+	handler := NewRequestHandler(db, nil)
 
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
 	admin := testutil.CreateTestUser(t, db, "admin@example.com", "admin", "pass", true)
@@ -358,7 +358,7 @@ func TestRequestHandler_DeleteRequest(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db)
+	handler := NewRequestHandler(db, nil)
 
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
 	admin := testutil.CreateTestUser(t, db, "admin@example.com", "admin", "pass", true)
@@ -482,7 +482,7 @@ func TestRequestHandler_GetRequestStats(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	db := testutil.SetupTestDB(t)
-	handler := NewRequestHandler(db)
+	handler := NewRequestHandler(db, nil)
 
 	// Create test data
 	user := testutil.CreateTestUser(t, db, "user@example.com", "user", "pass", false)
