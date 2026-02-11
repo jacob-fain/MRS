@@ -20,7 +20,11 @@ const CastSearch = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [debouncedQuery, setDebouncedQuery] = useState(searchParams.get('q') || '');
-  const [page, setPage] = useState(parseInt(searchParams.get('page')) || 1);
+  const [page, setPage] = useState(() => {
+    const pageParam = searchParams.get('page');
+    const parsed = parseInt(pageParam, 10);
+    return !isNaN(parsed) && parsed > 0 ? parsed : 1;
+  });
 
   const debouncedSearch = useCallback(
     debounce((query) => {
@@ -64,14 +68,24 @@ const CastSearch = () => {
         pagePromises.push(mediaService.searchPerson(debouncedQuery, i));
       }
 
-      const pages = await Promise.all(pagePromises);
+      const settledPages = await Promise.allSettled(pagePromises);
 
-      // Combine all results
-      const allResults = pages.flatMap(page => page.results || []);
+      // Keep only successfully fetched pages
+      const successfulPages = settledPages
+        .filter(result => result.status === 'fulfilled' && result.value)
+        .map(result => result.value);
+
+      // If all pages failed, propagate an error so React Query can handle it
+      if (successfulPages.length === 0) {
+        throw new Error('Failed to fetch person search results');
+      }
+
+      // Combine all results from successful pages
+      const allResults = successfulPages.flatMap(page => page.results || []);
 
       return {
         results: allResults,
-        total_results: pages[0]?.total_results || 0,
+        total_results: successfulPages[0]?.total_results || 0,
       };
     },
     enabled: debouncedQuery.length > 0,

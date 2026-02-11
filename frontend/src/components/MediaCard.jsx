@@ -62,7 +62,7 @@ const MediaCard = ({ media, onRequest, isRequested }) => {
     }
 
     const mediaType = media.media_type || 'movie';
-    navigate(`/movie/${mediaType}/${media.id}`);
+    navigate(`/${mediaType}/${media.id}`);
   };
 
   const handleRequestClick = (e) => {

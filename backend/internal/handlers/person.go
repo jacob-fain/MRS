@@ -92,7 +92,8 @@ func (h *personHandler) GetPersonDetails(c *gin.Context) {
 	person, err := h.tmdbService.GetPersonDetails(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to get person details",
+			"error":   "failed to get person details",
+			"details": err.Error(),
 		})
 		return
 	}
@@ -126,7 +127,8 @@ func (h *personHandler) GetPersonCredits(c *gin.Context) {
 	credits, err := h.tmdbService.GetPersonCredits(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to get person credits",
+			"error":   "failed to get person credits",
+			"details": err.Error(),
 		})
 		return
 	}
